@@ -2,8 +2,12 @@
 	"pages": [{
 		"path": "pages/index/index",
 		"style": {
-			"navigationBarTitleText": "首页",
-			"backgroundColor": "#222222"
+			"navigationBarTitleText": "Home",
+			"backgroundColor": "#222222",
+			"navigationStyle": "custom",
+			"app-plus": {
+				"titleNView": false
+			}
 		}
 	}, {
 		"path": "pages/pledge/index",
