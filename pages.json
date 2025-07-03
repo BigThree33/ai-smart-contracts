@@ -2,36 +2,41 @@
 	"pages": [{
 		"path": "pages/index/index",
 		"style": {
-			"navigationBarTitleText": "首页"
+			"navigationBarTitleText": "首页",
+			"backgroundColor": "#222222"
 		}
 	}, {
 		"path": "pages/pledge/index",
 		"style": {
-			"navigationBarTitleText": "质押"
+			"navigationBarTitleText": "质押",
+			"backgroundColor": "#222222"
 		}
 	}, {
 		"path": "pages/share/index",
 		"style": {
-			"navigationBarTitleText": "分享"
+			"navigationBarTitleText": "分享",
+			"backgroundColor": "#222222"
 		}
 	}, {
 		"path": "pages/account/index",
 		"style": {
-			"navigationBarTitleText": "我的"
+			"navigationBarTitleText": "我的",
+			"backgroundColor": "#222222"
 		}
 	}, {
 		"path": "pages/help/index",
 		"style": {
-			"navigationBarTitleText": "帮助中心"
+			"navigationBarTitleText": "帮助中心",
+			"backgroundColor": "#222222"
 		}
 	}],
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
 		"navigationBarTitleText": "Ai Smart Contracts",
 		"navigationBarBackgroundColor": "#F8F8F8",
-		"backgroundColor": "#F8F8F8",
+		"backgroundColor": "#222222",
 		"app-plus": {
-			"background": "#efeff4"
+			"background": "#222222"
 		}
 	},
 	"tabBar": {
@@ -47,22 +52,27 @@
 			"pagePath": "pages/index/index",
 			"iconPath": "static/c1.png",
 			"selectedIconPath": "static/c1.png",
-			"text": "首页"
+			"text": "Home"
+		},{
+			"pagePath": "pages/help/index",
+			"iconPath": "static/c4.png",
+			"selectedIconPath": "static/c4.png",
+			"text": "Help"
 		}, {
 			"pagePath": "pages/pledge/index",
 			"iconPath": "static/c2.png",
 			"selectedIconPath": "static/c2.png",
-			"text": "质押"
+			"text": "Pledge"
 		}, {
 			"pagePath": "pages/share/index",
 			"iconPath": "static/c3.png",
 			"selectedIconPath": "static/c3.png",
-			"text": "分享"
+			"text": "Share"
 		}, {
 			"pagePath": "pages/account/index",
 			"iconPath": "static/c4.png",
 			"selectedIconPath": "static/c4.png",
-			"text": "我的"
+			"text": "Account"
 		}],
 		"position": "bottom"
 	}
