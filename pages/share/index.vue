@@ -1,115 +1,108 @@
 <template>
-  <view class="help-container">
-    <!-- 背景区域 -->
-    <view class="gradient-bg">
-      <image v-if="backgroundImage" class="bg-image" :src="backgroundImage" mode="aspectFill"></image>
+  <view class="share-container">
+    <!-- 渐变背景区域 -->
+    <view class="gradient-bg"></view>
+    
+    <!-- 顶部叠加图片 -->
+    <view class="overlay-image-container">
+      <image class="overlay-image" :src="topImage" mode="aspectFit"></image>
     </view>
     
-    <!-- 客服按钮 -->
-    <view class="customer-service-box" @click="contactCustomerService">
-      <uni-icons type="headphones" size="24" color="#3c8dbc"></uni-icons>
-      <text class="service-text">Online Customer Service</text>
-    </view>
-    
-    <!-- FAQ内容区域 -->
-    <view class="faq-container">
-      <!-- 第一个问题 -->
-      <view class="faq-item">
-        <view class="faq-title">
-          <uni-icons type="info" size="20" color="#3c8dbc"></uni-icons>
-          <text class="title-text">What is an artificial intelligence (AI) smart contract trading system?</text>
+    <!-- 分享内容区域 -->
+    <view class="share-content">
+      <view class="section header-section">
+        <text class="title">邀请好友加入</text>
+        <text class="subtitle">分享获得双倍奖励</text>
+      </view>
+      
+      <view class="section rewards-section">
+        <view class="reward-card">
+          <view class="reward-icon">
+            <uni-icons type="medal" size="40" color="#3c8dbc"></uni-icons>
+          </view>
+          <view class="reward-info">
+            <text class="reward-title">邀请奖励</text>
+            <text class="reward-desc">每邀请1位新用户注册，获得5 USDT奖励</text>
+          </view>
         </view>
         
-        <view class="faq-content">
-          <text class="content-text">
-            An AI smart contract trading system is a blockchain technology-based trading system that uses smart contracts as an execution and management tool for trading. A smart contract is a computational code that programmatically defines and automatically executes the terms of a contract. These contract codes are stored on the blockchain to ensure transparency, security and reliability of transactions.
-            
-            At the same time the smart contract trading system allows participants to trade without the need for a third party intermediary. The system works on the principle that the contract code will automatically execute a transaction when predefined conditions are met. This means that transactions can be executed without human intervention, thus reducing the possibility of fraud and errors and increasing the efficiency of transactions.
-            
-            The system can execute various types of transactions, such as digital currency transactions, asset swaps, decentralized finance (DeFi) transactions, etc. It can also provide other functions such as decentralized exchange (DEX) operations, automated trading strategy execution and management, and crowdfunding platform operations.
-            
-            These systems provide a more open and transparent trading environment through blockchain technology, enabling participants to trade securely and without the need to trust third parties.
-          </text>
+        <view class="reward-card">
+          <view class="reward-icon">
+            <uni-icons type="gift" size="40" color="#3c8dbc"></uni-icons>
+          </view>
+          <view class="reward-info">
+            <text class="reward-title">交易分成</text>
+            <text class="reward-desc">好友交易额的0.5%作为持续奖励</text>
+          </view>
         </view>
       </view>
       
-      <view class="divider"></view>
-      
-      <!-- 第二个问题 -->
-      <view class="faq-item">
-        <view class="faq-title">
-          <uni-icons type="info" size="20" color="#3c8dbc"></uni-icons>
-          <text class="title-text">How do AI smart contracts work?</text>
-        </view>
-        
-        <view class="faq-content">
-          <text class="content-text">
-            AI smart contracts combine artificial intelligence with blockchain technology to create self-executing contracts. These contracts automatically execute, control, or document legally relevant events according to the terms written directly into code.
-            
-            The AI component enhances traditional smart contracts by adding capabilities such as pattern recognition, learning from historical data, and making decisions based on complex criteria. This allows the contracts to adapt and respond to changing market conditions more effectively than traditional static contracts.
-            
-            When a predefined condition is met, the smart contract automatically executes the corresponding agreement. The entire process is transparent and secure, with all transactions recorded on the blockchain.
-          </text>
+      <view class="section referral-section">
+        <text class="section-title">我的邀请码</text>
+        <view class="referral-code">
+          <text class="code">{{ referralCode }}</text>
+          <view class="copy-btn" @click="copyReferralCode">
+            <uni-icons type="copy" size="20" color="#3c8dbc"></uni-icons>
+            <text>复制</text>
+          </view>
         </view>
       </view>
       
-      <view class="divider"></view>
-      
-      <!-- 第三个问题 -->
-      <view class="faq-item">
-        <view class="faq-title">
-          <uni-icons type="info" size="20" color="#3c8dbc"></uni-icons>
-          <text class="title-text">What are the benefits of using AI smart contracts?</text>
-        </view>
-        
-        <view class="faq-content">
-          <text class="content-text">
-            AI smart contracts offer numerous advantages over traditional trading systems:
-            
-            1. Automation: Eliminates the need for intermediaries, reducing costs and increasing efficiency.
-            
-            2. Security: Blockchain technology ensures that contracts cannot be altered once deployed.
-            
-            3. Transparency: All parties can view the contract terms and execution history.
-            
-            4. Efficiency: Transactions are processed quickly and automatically when conditions are met.
-            
-            5. Reduced Risk: Smart contracts minimize the risk of fraud and errors.
-            
-            6. Accessibility: Available 24/7, allowing for trading at any time without downtime.
-            
-            7. Adaptability: AI components can adjust strategies based on market conditions.
-            
-            8. Cost-Effective: Reduces overhead costs associated with traditional trading systems.
-          </text>
+      <view class="section referral-link-section">
+        <text class="section-title">邀请链接</text>
+        <view class="referral-link">
+          <text class="link">{{ referralLink }}</text>
+          <view class="copy-btn" @click="copyReferralLink">
+            <uni-icons type="copy" size="20" color="#3c8dbc"></uni-icons>
+            <text>复制</text>
+          </view>
         </view>
       </view>
       
-      <view class="divider"></view>
-      
-      <!-- 第四个问题 -->
-      <view class="faq-item">
-        <view class="faq-title">
-          <uni-icons type="info" size="20" color="#3c8dbc"></uni-icons>
-          <text class="title-text">Is it safe to use AI smart contracts for trading?</text>
+      <view class="section share-buttons-section">
+        <text class="section-title">分享方式</text>
+        <view class="share-buttons">
+          <view class="share-button" @click="shareToWechat">
+            <view class="share-icon wechat">
+              <uni-icons type="weixin" size="30" color="#ffffff"></uni-icons>
+            </view>
+            <text class="share-text">微信</text>
+          </view>
+          
+          <view class="share-button" @click="shareToQQ">
+            <view class="share-icon qq">
+              <uni-icons type="qq" size="30" color="#ffffff"></uni-icons>
+            </view>
+            <text class="share-text">QQ</text>
+          </view>
+          
+          <view class="share-button" @click="shareToWeibo">
+            <view class="share-icon weibo">
+              <uni-icons type="weibo" size="30" color="#ffffff"></uni-icons>
+            </view>
+            <text class="share-text">微博</text>
+          </view>
+          
+          <view class="share-button" @click="generateQRCode">
+            <view class="share-icon qrcode">
+              <uni-icons type="scan" size="30" color="#ffffff"></uni-icons>
+            </view>
+            <text class="share-text">二维码</text>
+          </view>
         </view>
-        
-        <view class="faq-content">
-          <text class="content-text">
-            AI smart contracts provide a high level of security due to their blockchain foundation. However, like any technology, they are not without risks:
-            
-            - Code Security: Smart contracts are only as secure as their code. We employ rigorous auditing and testing to ensure contract integrity.
-            
-            - Blockchain Security: We use established blockchain networks with proven security records.
-            
-            - Data Privacy: User data is protected through encryption and secure protocols.
-            
-            - Risk Management: Our AI systems include risk assessment tools to prevent unexpected losses.
-            
-            - Regulatory Compliance: Our contracts are designed to comply with relevant financial regulations.
-            
-            We recommend users to start with smaller trades to become familiar with the system before committing larger amounts.
-          </text>
+      </view>
+      
+      <view class="section stats-section">
+        <text class="section-title">邀请统计</text>
+        <view class="stats-info">
+          <view class="stat-item">
+            <text class="stat-label">已邀请人数</text>
+            <text class="stat-value">{{ invitedCount }}</text>
+          </view>
+          <view class="stat-item">
+            <text class="stat-label">累计奖励</text>
+            <text class="stat-value">{{ totalRewards }} USDT</text>
+          </view>
         </view>
       </view>
     </view>
@@ -119,126 +112,293 @@
 <script setup>
 import { ref } from 'vue';
 
-// 背景图片，可以设置为空字符串禁用背景图片
-const backgroundImage = ref('');
+// 顶部叠加图片
+const topImage = ref('/static/share-banner.png'); // 替换为实际图片路径
 
-// 联系客服方法
-const contactCustomerService = () => {
-  uni.showModal({
-    title: '客服联系',
-    content: '您确定要联系在线客服吗？',
-    success: function(res) {
-      if (res.confirm) {
-        // 这里可以添加实际的客服联系逻辑，例如打开聊天窗口或拨打电话
-        uni.showToast({
-          title: '正在连接客服...',
-          icon: 'none',
-          duration: 2000
-        });
-        
-        // 模拟客服连接
-        setTimeout(() => {
-          uni.navigateTo({
-            url: '/pages/chat/index' // 假设有一个客服聊天页面
-          });
-        }, 1000);
-      }
+// 邀请数据
+const referralCode = ref('AISCX7821');
+const referralLink = ref('https://example.com/ref/AISCX7821');
+const invitedCount = ref(12);
+const totalRewards = ref(60);
+
+// 复制邀请码
+const copyReferralCode = () => {
+  uni.setClipboardData({
+    data: referralCode.value,
+    success: function() {
+      uni.showToast({
+        title: '邀请码已复制',
+        icon: 'success'
+      });
     }
   });
+};
+
+// 复制邀请链接
+const copyReferralLink = () => {
+  uni.setClipboardData({
+    data: referralLink.value,
+    success: function() {
+      uni.showToast({
+        title: '邀请链接已复制',
+        icon: 'success'
+      });
+    }
+  });
+};
+
+// 分享方法
+const shareToWechat = () => {
+  uni.showToast({
+    title: '正在分享到微信...',
+    icon: 'none'
+  });
+  // 实际的微信分享API调用
+};
+
+const shareToQQ = () => {
+  uni.showToast({
+    title: '正在分享到QQ...',
+    icon: 'none'
+  });
+  // 实际的QQ分享API调用
+};
+
+const shareToWeibo = () => {
+  uni.showToast({
+    title: '正在分享到微博...',
+    icon: 'none'
+  });
+  // 实际的微博分享API调用
+};
+
+const generateQRCode = () => {
+  uni.showToast({
+    title: '生成二维码...',
+    icon: 'none'
+  });
+  // 生成二维码逻辑
 };
 </script>
 
 <style lang="scss">
-.help-container {
+.share-container {
   min-height: 100vh;
   background-color: #f5f5f5;
   position: relative;
 }
 
+// 渐变背景，从蓝色到白色
 .gradient-bg {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 40vh; // 调整高度以匹配设计要求
+  height: 40vh; // 渐变高度，可调整
   background: linear-gradient(to bottom, #3c8dbc, white);
   z-index: 0;
+}
+
+// 顶部叠加图片容器
+.overlay-image-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 35vh;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
   
-  .bg-image {
+  .overlay-image {
     width: 100%;
     height: 100%;
-    opacity: 0.3; // 控制背景图片的透明度
+    object-fit: contain;
   }
 }
 
-.customer-service-box {
+// 内容区域
+.share-content {
   position: relative;
-  z-index: 1;
-  margin: 0 30rpx;
-  margin-top: 30vh; // 放置在顶部30%的位置
-  padding: 30rpx;
-  background-color: #ffffff;
-  border-radius: 20rpx;
-  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  z-index: 2;
+  padding: 20rpx 30rpx;
+  padding-top: 25vh; // 确保内容在图片下方开始
   
-  .service-text {
-    margin-left: 20rpx;
+  .section {
+    background-color: #ffffff;
+    border-radius: 20rpx;
+    padding: 30rpx;
+    margin-bottom: 30rpx;
+    box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.05);
+  }
+  
+  .header-section {
+    text-align: center;
+    
+    .title {
+      font-size: 40rpx;
+      font-weight: bold;
+      color: #333333;
+      margin-bottom: 10rpx;
+    }
+    
+    .subtitle {
+      font-size: 28rpx;
+      color: #666666;
+    }
+  }
+  
+  .section-title {
     font-size: 32rpx;
     font-weight: bold;
     color: #333333;
+    margin-bottom: 20rpx;
+    display: block;
   }
-}
-
-.faq-container {
-  position: relative;
-  z-index: 1;
-  margin: 30rpx;
-  margin-top: 50rpx;
-  padding: 40rpx;
-  background-color: #ffffff;
-  border-radius: 20rpx;
-  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
   
-  .faq-item {
-    margin-bottom: 40rpx;
+  // 奖励卡片
+  .rewards-section {
+    .reward-card {
+      display: flex;
+      align-items: center;
+      padding: 20rpx 0;
+      border-bottom: 1px solid #f0f0f0;
+      
+      &:last-child {
+        border-bottom: none;
+      }
+      
+      .reward-icon {
+        margin-right: 20rpx;
+        background-color: rgba(60, 141, 188, 0.1);
+        width: 100rpx;
+        height: 100rpx;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      
+      .reward-info {
+        flex: 1;
+        
+        .reward-title {
+          font-size: 32rpx;
+          font-weight: bold;
+          color: #333333;
+          margin-bottom: 10rpx;
+        }
+        
+        .reward-desc {
+          font-size: 24rpx;
+          color: #666666;
+        }
+      }
+    }
+  }
+  
+  // 邀请码和链接
+  .referral-code, .referral-link {
+    background-color: #f8f8f8;
+    padding: 20rpx;
+    border-radius: 10rpx;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     
-    &:last-child {
-      margin-bottom: 0;
+    .code, .link {
+      font-size: 30rpx;
+      color: #333333;
+      font-weight: bold;
+      letter-spacing: 2rpx;
     }
     
-    .faq-title {
+    .copy-btn {
       display: flex;
-      align-items: flex-start;
+      align-items: center;
+      background-color: #ffffff;
+      padding: 10rpx 20rpx;
+      border-radius: 10rpx;
+      border: 1px solid #e0e0e0;
+      
+      text {
+        font-size: 24rpx;
+        margin-left: 10rpx;
+        color: #3c8dbc;
+      }
+    }
+  }
+  
+  // 分享按钮
+  .share-buttons {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    
+    .share-button {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0 10rpx;
       margin-bottom: 20rpx;
       
-      .title-text {
-        margin-left: 20rpx;
-        font-size: 32rpx;
-        font-weight: bold;
-        color: #333333;
-        flex: 1;
+      .share-icon {
+        width: 100rpx;
+        height: 100rpx;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 10rpx;
+        
+        &.wechat {
+          background-color: #07C160;
+        }
+        
+        &.qq {
+          background-color: #12B7F5;
+        }
+        
+        &.weibo {
+          background-color: #E6162D;
+        }
+        
+        &.qrcode {
+          background-color: #3c8dbc;
+        }
       }
-    }
-    
-    .faq-content {
-      padding-left: 44rpx; // 对齐标题文本
       
-      .content-text {
-        font-size: 28rpx;
-        line-height: 1.6;
+      .share-text {
+        font-size: 24rpx;
         color: #666666;
-        text-align: justify;
       }
     }
   }
   
-  .divider {
-    height: 2rpx;
-    background-color: #eeeeee;
-    margin: 40rpx 0;
+  // 统计信息
+  .stats-info {
+    display: flex;
+    justify-content: space-around;
+    
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      
+      .stat-label {
+        font-size: 24rpx;
+        color: #666666;
+        margin-bottom: 10rpx;
+      }
+      
+      .stat-value {
+        font-size: 40rpx;
+        font-weight: bold;
+        color: #3c8dbc;
+      }
+    }
   }
 }
 </style>

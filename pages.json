@@ -15,7 +15,11 @@
 		"path": "pages/share/index",
 		"style": {
 			"navigationBarTitleText": "分享",
-			"backgroundColor": "#222222"
+			"backgroundColor": "#222222",
+			"navigationStyle": "custom",
+			"app-plus": {
+				"titleNView": false
+			}
 		}
 	}, {
 		"path": "pages/account/index",
@@ -27,7 +31,11 @@
 		"path": "pages/help/index",
 		"style": {
 			"navigationBarTitleText": "帮助中心",
-			"backgroundColor": "#222222"
+			"backgroundColor": "#222222",
+			"navigationStyle": "custom",
+			"app-plus": {
+				"titleNView": false
+			}
 		}
 	}],
 	"globalStyle": {
