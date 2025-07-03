@@ -1,8 +1,16 @@
 <template>
   <view class="pledge-container">
     <view class="header">
-      <text class="title">质押中心</text>
-      <text class="subtitle">安全稳定的数字资产质押服务</text>
+
+    </view>
+    
+    <!-- 余额显示 -->
+    <view class="balance-section">
+      <view class="balance-display">
+        <text class="currency-symbol">$</text>
+        <text class="balance-amount">{{ balance }}</text>
+      </view>
+      <text class="balance-label">Funds in Escrow (USDT)</text>
     </view>
     
     <view class="stats-card">
@@ -65,6 +73,16 @@
       <button class="pledge-button" @click="submitPledge">立即质押</button>
     </view>
     
+    <!-- 托管资金显示 -->
+    <view class="escrow-section">
+      <text class="escrow-title">Funds in Escrow (USDT)</text>
+      <text class="escrow-subtitle">托管资金（USDT）</text>
+      <view class="escrow-amount">
+        <text class="escrow-value">{{ escrowFunds }}</text>
+        <text class="escrow-currency">USDT</text>
+      </view>
+    </view>
+    
     <view class="history">
       <view class="history-title">我的质押记录</view>
       <view v-if="pledgeHistory.length > 0">
@@ -94,6 +112,8 @@
 import { ref, computed } from 'vue';
 
 // 数据
+const balance = ref('125,890.00');
+const escrowFunds = ref('89,456.78');
 const totalPledged = ref('1,234,567');
 const apy = ref('12.5');
 const userCount = ref('3,456');
@@ -188,7 +208,7 @@ const submitPledge = () => {
 <style lang="scss">
 .pledge-container {
   padding: 30rpx;
-  background-color: #222222;
+  background: linear-gradient(to bottom, #3a73f6, #f5f7fb);
   min-height: 100vh;
   color: #ffffff;
 }
@@ -210,10 +230,39 @@ const submitPledge = () => {
   }
 }
 
+.balance-section {
+  text-align: left;
+  margin-bottom: 40rpx;
+  
+  .balance-display {
+    display: flex;
+    justify-content: flex-start;
+    align-items: baseline;
+    margin-bottom: 15rpx;
+    
+    .currency-symbol {
+      font-size: 40rpx;
+      color: #ffffff;
+      margin-right: 10rpx;
+    }
+    
+    .balance-amount {
+      font-size: 56rpx;
+      font-weight: bold;
+      color: #ffffff;
+    }
+  }
+  
+  .balance-label {
+    font-size: 28rpx;
+    color: #ffffff;
+  }
+}
+
 .stats-card {
   display: flex;
   justify-content: space-between;
-  background-color: #333333;
+  background-color: #ffffff;
   border-radius: 20rpx;
   padding: 30rpx;
   margin-bottom: 40rpx;
@@ -238,7 +287,7 @@ const submitPledge = () => {
 }
 
 .pledge-form {
-  background-color: #333333;
+  background-color: #ffffff;
   border-radius: 20rpx;
   padding: 30rpx;
   margin-bottom: 40rpx;
@@ -352,8 +401,48 @@ const submitPledge = () => {
   }
 }
 
+.escrow-section {
+  background-color: #ffffff;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  margin-bottom: 40rpx;
+  text-align: center;
+  
+  .escrow-title {
+    font-size: 32rpx;
+    color: #ffffff;
+    margin-bottom: 10rpx;
+    display: block;
+  }
+  
+  .escrow-subtitle {
+    font-size: 28rpx;
+    color: #999999;
+    margin-bottom: 25rpx;
+    display: block;
+  }
+  
+  .escrow-amount {
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    
+    .escrow-value {
+      font-size: 48rpx;
+      font-weight: bold;
+      color: #3c8dbc;
+      margin-right: 15rpx;
+    }
+    
+    .escrow-currency {
+      font-size: 32rpx;
+      color: #cccccc;
+    }
+  }
+}
+
 .history {
-  background-color: #333333;
+  background-color: #ffffff;
   border-radius: 20rpx;
   padding: 30rpx;
   
