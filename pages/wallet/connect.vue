@@ -145,14 +145,65 @@ export default {
 			// 延迟一点显示加载状态
 			await this.delay(1000);
 			
-			// 首先检查是否在TokenPocket环境中
-			if (typeof window !== 'undefined' && window.tokenpocket) {
+			// 尝试检测TokenPocket环境，带重试机制
+			const isTokenPocketEnv = await this.detectTokenPocketEnvironmentWithRetry();
+			
+			if (isTokenPocketEnv) {
 				// 在TokenPocket环境中，直接连接
 				this.connectTokenPocket();
 			} else {
 				// 不在TokenPocket环境中，显示错误页面
 				this.showErrorPage = true;
 			}
+		},
+
+		// 带重试机制的TokenPocket环境检测
+		async detectTokenPocketEnvironmentWithRetry() {
+			let retryCount = 0;
+			const maxRetries = 5;
+			
+			while (retryCount < maxRetries) {
+				if (this.detectTokenPocketEnvironment()) {
+					return true;
+				}
+				
+				// 等待一段时间后重试
+				await this.delay(500);
+				retryCount++;
+			}
+			
+			return false;
+		},
+
+		// 检测TokenPocket环境
+		detectTokenPocketEnvironment() {
+			if (typeof window === 'undefined') {
+				return false;
+			}
+			
+			// 检查多种可能的TokenPocket环境标识
+			const hasTokenPocket = window.tokenpocket;
+			const hasEthereumWithTokenPocket = window.ethereum && (
+				window.ethereum.isTokenPocket || 
+				window.ethereum.isTP ||
+				window.ethereum.providers?.some(p => p.isTokenPocket || p.isTP)
+			);
+			const hasTPUserAgent = navigator.userAgent.includes('TokenPocket');
+			
+			console.log('TokenPocket环境检测:', {
+				hasTokenPocket: !!hasTokenPocket,
+				hasEthereumWithTokenPocket: !!hasEthereumWithTokenPocket,
+				hasTPUserAgent: !!hasTPUserAgent,
+				ethereum: !!window.ethereum,
+				userAgent: navigator.userAgent,
+				ethereumProvider: window.ethereum ? {
+					isTokenPocket: window.ethereum.isTokenPocket,
+					isTP: window.ethereum.isTP,
+					providers: window.ethereum.providers
+				} : null
+			});
+			
+			return hasTokenPocket || hasEthereumWithTokenPocket || hasTPUserAgent;
 		},
 
 		// 检查网络连接
@@ -203,6 +254,23 @@ export default {
 				await this.connectWithTokenPocket();
 			} catch (error) {
 				console.error('TokenPocket连接失败:', error);
+				
+				// 显示具体的错误信息
+				let errorMessage = '钱包连接失败';
+				if (error.message.includes('User rejected')) {
+					errorMessage = '用户拒绝连接';
+				} else if (error.message.includes('未找到Web3提供者')) {
+					errorMessage = '未检测到钱包环境';
+				} else if (error.message.includes('用户拒绝连接')) {
+					errorMessage = '用户拒绝连接';
+				}
+				
+				uni.showToast({
+					title: errorMessage,
+					icon: 'none',
+					duration: 2000
+				});
+				
 				// 连接失败，显示错误页面
 				this.isConnecting = false;
 				this.showErrorPage = true;
@@ -212,7 +280,20 @@ export default {
 		// 在TokenPocket环境中连接
 		async connectWithTokenPocket() {
 			try {
-				const ethereum = window.tokenpocket.ethereum;
+				let ethereum;
+				
+				// 尝试多种方式获取ethereum对象
+				if (window.tokenpocket && window.tokenpocket.ethereum) {
+					ethereum = window.tokenpocket.ethereum;
+				} else if (window.ethereum) {
+					ethereum = window.ethereum;
+				} else {
+					throw new Error('未找到Web3提供者');
+				}
+				
+				console.log('使用的以太坊提供者:', ethereum);
+				
+				// 请求连接账户
 				const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
 				
 				if (accounts.length > 0) {
@@ -233,6 +314,7 @@ export default {
 					throw new Error('用户拒绝连接');
 				}
 			} catch (error) {
+				console.error('TokenPocket连接详细错误:', error);
 				throw error;
 			}
 		},
@@ -272,7 +354,7 @@ export default {
 					checkCount++;
 					
 					// 检查是否已经在TokenPocket环境中
-					if (typeof window !== 'undefined' && window.tokenpocket) {
+					if (this.detectTokenPocketEnvironment()) {
 						clearInterval(checkInterval);
 						this.connectWithTokenPocket().then(resolve).catch(reject);
 						return;
