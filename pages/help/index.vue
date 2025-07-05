@@ -12,9 +12,22 @@
         <!-- 内容区域(框2) -->
         <view class="content-container">
             <!-- 客服按钮 -->
-            <view class="customer-service-box" @click="contactCustomerService">
-                <uni-icons type="headphones" size="24" color="#3c8dbc"></uni-icons>
-                <text class="service-text">Online Customer Service</text>
+            <view class="customer-service-box">
+                <view class="service-row" @click="toggleCustomerService">
+                    <view class="service-left">
+                        <uni-icons type="headphones" size="20" color="#3c8dbc"></uni-icons>
+                        <text class="service-text">Online Customer Service</text>
+                    </view>
+                    <text class="expand-arrow" :class="{'rotated': showSubService}">></text>
+                </view>
+
+                <!-- 展开的子选项 -->
+                <view v-if="showSubService" class="sub-service-row" @click="navigateToChat">
+                    <view class="service-left">
+                        <uni-icons type="chat" size="20" color="#3c8dbc"></uni-icons>
+                        <text class="service-text">Contact Support</text>
+                    </view>
+                </view>
             </view>
 
             <!-- FAQ内容区域 -->
@@ -188,24 +201,45 @@ import { ref, onMounted } from 'vue';
 // 获取状态栏高度
 let statusBarHeight = 0;
 
-// 联系客服方法
+// 控制客服子选项显示
+const showSubService = ref(false);
+
+// 切换客服子选项显示
+const toggleCustomerService = () => {
+    showSubService.value = !showSubService.value;
+};
+
+// 跳转到客服聊天页面
+const navigateToChat = () => {
+    // 这里可以添加实际的跳转逻辑
+    uni.showToast({
+        title: '即将跳转到客服页面...',
+        icon: 'none',
+        duration: 1500
+    });
+    
+    // 后续可以添加实际的跳转代码
+    // uni.navigateTo({
+    //     url: '/pages/chat/index'
+    // });
+};
+
+// 原有的联系客服方法（如果还需要的话可以保留）
 const contactCustomerService = () => {
     uni.showModal({
         title: '客服联系',
         content: '您确定要联系在线客服吗？',
         success: function (res) {
             if (res.confirm) {
-                // 这里可以添加实际的客服联系逻辑，例如打开聊天窗口或拨打电话
                 uni.showToast({
                     title: '正在连接客服...',
                     icon: 'none',
                     duration: 2000
                 });
 
-                // 模拟客服连接
                 setTimeout(() => {
                     uni.navigateTo({
-                        url: '/pages/chat/index' // 假设有一个客服聊天页面
+                        url: '/pages/chat/index'
                     });
                 }, 1000);
             }
@@ -216,7 +250,6 @@ const contactCustomerService = () => {
 // 获取状态栏高度
 onMounted(() => {
     try {
-        // 获取系统信息
         const systemInfo = uni.getSystemInfoSync();
         statusBarHeight = systemInfo.statusBarHeight || 0;
     } catch (e) {
@@ -235,36 +268,37 @@ onMounted(() => {
 }
 
 .gradient-bg {
-    position: relative;
-    /* 修改为relative，不再固定在视图顶部 */
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 50vh;
-    /* 50% of viewport height */
-    background: linear-gradient(to bottom, #094884, white);
-    z-index: 0;
+     position: relative; // 使用相对定位
+    top: 0; // 距离顶部0像素
+    left: 0; // 距离左侧0像素
+    right: 0; // 距离右侧0像素
+    height: 50vh; // 高度为视口高度的50%
+    background: linear-gradient(to bottom, #094884, white); // 从深蓝色到白色的渐变背景
+    z-index: 0; // z轴位置，确保在其他元素之下
 }
 
+
+//TODO hetght更改图片不同显示大小
 .overlay-image-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 25vh;
-    /* 减小高度，只占据大框1的一部分 */
-    z-index: 1;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    overflow: hidden;
+     position: absolute; // 使用绝对定位
+    top: 0; // 距离顶部0像素
+    left: 0; // 距离左侧0像素
+    right: 0; // 距离右侧0像素
+    height: 40vh; // 增加高度到30vh，给图片更多显示空间
+    z-index: 1; // z轴位置，位于gradient-bg之上
+    display: flex; // 使用flex布局
+    justify-content: center; // 水平居中
+    align-items: center; // 改为居中对齐，避免顶部裁剪
+    overflow: hidden; // 确保超出容器的图片部分被裁剪
+    padding-top: var(--status-bar-height, 20px); // 添加状态栏高度的内边距
 }
 
 .overlay-image {
     width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: top;
+    height: 90%;
+     max-height: 100%; // 最大高度不超过容器
+    object-fit: contain;
+    object-position: center; // 图片居中显示
     margin-top: 0;
     display: block;
 }
@@ -272,30 +306,82 @@ onMounted(() => {
 .content-container {
     position: relative;
     z-index: 2;
-    margin: 0 30rpx;
-    margin-top: -25vh; /* 向上覆盖大框1的一部分 */
+    margin: 0 0rpx;
+    margin-top: -27vh; /* 向上覆盖大框1的一部分 */
     padding: 40rpx;
-    background-color: #ffffff;
+    background-color: transparent;
     border-radius: 20rpx 20rpx 0 0;
-    box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.1);
+    // box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.1);
     min-height: 70vh; /* 确保足够高度，可自动扩展 */
 }
 
+/* 客服按钮 - 控制"Online Customer Service"按钮的样式 */
 .customer-service-box {
-    margin: 0 0 30rpx 0;
-    padding: 30rpx;
-    background-color: #ffffff;
-    border-radius: 15rpx;
-    box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    margin: 0 0 30rpx 0; // 上右下左外边距：上0，右0，下30rpx，左0
+    padding: 0; // 移除整体padding，让子元素自己控制
+    background-color: #ffffff; // 背景色为白色
+    border-radius: 15rpx; // 所有角都有15rpx的圆角
+    box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1); // 添加阴影效果
+    overflow: hidden; // 确保子元素不会溢出圆角
+}
 
+/* 主服务行 - 控制主要的客服选项行 */
+.service-row {
+    display: flex; // 使用flex布局
+    align-items: center; // 垂直居中对齐
+    justify-content: space-between; // 两端对齐
+    padding: 25rpx 30rpx; // 内边距：上下25rpx，左右30rpx
+    cursor: pointer; // 鼠标指针样式
+    
+    &:hover {
+        background-color: #f8f9fa; // 悬停时的背景色
+    }
+}
+
+/* 左侧内容区域 - 包含图标和文字 */
+.service-left {
+    display: flex; // 使用flex布局
+    align-items: center; // 垂直居中对齐
+    justify-content: flex-start; // 左对齐
+    flex: 1; // 占用剩余空间
+}
+
+/* 客服按钮文本 - 控制"Online Customer Service"文字的样式 */
+.service-text {
+    margin-left: 15rpx; // 左外边距15rpx，与图标保持距离
+    font-size: 28rpx; // 字体大小调小到28rpx
+    font-weight: 500; // 字体粗细调整
+    color: #333333; // 字体颜色深灰色
+}
+
+/* 展开箭头 - 控制右侧的">"箭头 */
+.expand-arrow {
+    font-size: 24rpx; // 箭头字体大小
+    color: #999999; // 箭头颜色为灰色
+    transition: transform 0.3s ease; // 旋转动画过渡
+    transform: rotate(0deg); // 初始状态不旋转
+    
+    &.rotated {
+        transform: rotate(90deg); // 展开时顺时针旋转90度
+    }
+}
+
+/* 子服务行 - 控制展开后的子选项行 */
+.sub-service-row {
+    display: flex; // 使用flex布局
+    align-items: center; // 垂直居中对齐
+    padding: 20rpx 30rpx 25rpx 50rpx; // 内边距：上20rpx，右30rpx，下25rpx，左50rpx（左侧多一些缩进）
+    border-top: 1rpx solid #f0f0f0; // 顶部添加分隔线
+    background-color: #fafafa; // 稍微不同的背景色以区分
+    cursor: pointer; // 鼠标指针样式
+    
+    &:hover {
+        background-color: #f0f0f0; // 悬停时的背景色
+    }
+    
     .service-text {
-        margin-left: 20rpx;
-        font-size: 32rpx;
-        font-weight: bold;
-        color: #333333;
+        font-size: 26rpx; // 子选项的字体稍微小一点
+        color: #666666; // 颜色稍微浅一点
     }
 }
 
