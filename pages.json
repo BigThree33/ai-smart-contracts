@@ -1,5 +1,15 @@
 {
 	"pages": [{
+		"path": "pages/wallet/connect",
+		"style": {
+			"navigationBarTitleText": "Connect Wallet",
+			"backgroundColor": "#222222",
+			"navigationStyle": "custom",
+			"app-plus": {
+				"titleNView": false
+			}
+		}
+	}, {
 		"path": "pages/index/index",
 		"style": {
 			"navigationBarTitleText": "Home",
@@ -41,6 +51,12 @@
 				"titleNView": false
 			}
 		}
+	}, {
+		"path": "pages/webview/webview",
+		"style": {
+			"navigationBarTitleText": "外部链接",
+			"backgroundColor": "#ffffff"
+		}
 	}],
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
@@ -52,14 +68,14 @@
 		}
 	},
 	"tabBar": {
-		"color": "#7A7E83",
-		"selectedColor": "#3c8dbc",
-		"borderStyle": "black",
+		"color": "#999999",
+		"selectedColor": "#4A90E2",
+		"borderStyle": "white",
 		"backgroundColor": "#ffffff",
-		"fontSize": "14px",
+		"fontSize": "10px",
 		"iconWidth": "24px",
-		"spacing": "5px",
-		"height": "50px",
+		"spacing": "3px",
+		"height": "60px",
 		"list": [{
 			"pagePath": "pages/index/index",
 			"iconPath": "static/c1.png",
@@ -67,23 +83,23 @@
 			"text": "Home"
 		},{
 			"pagePath": "pages/help/index",
-			"iconPath": "static/c4.png",
-			"selectedIconPath": "static/c4.png",
+			"iconPath": "static/c2.png",
+			"selectedIconPath": "static/c2.png",
 			"text": "Help"
 		}, {
 			"pagePath": "pages/pledge/index",
-			"iconPath": "static/c2.png",
-			"selectedIconPath": "static/c2.png",
-			"text": "Pledge"
-		}, {
-			"pagePath": "pages/share/index",
 			"iconPath": "static/c3.png",
 			"selectedIconPath": "static/c3.png",
+			"text": "People"
+		}, {
+			"pagePath": "pages/share/index",
+			"iconPath": "static/c4.png",
+			"selectedIconPath": "static/c4.png",
 			"text": "Share"
 		}, {
 			"pagePath": "pages/account/index",
-			"iconPath": "static/c4.png",
-			"selectedIconPath": "static/c4.png",
+			"iconPath": "static/c5.png",
+			"selectedIconPath": "static/c5.png",
 			"text": "Account"
 		}],
 		"position": "bottom"
