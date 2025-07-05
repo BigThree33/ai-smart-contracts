@@ -87,7 +87,7 @@
       </view>
     </view>
     
-git    <!-- 第二个产品框 -->
+    <!-- 第二个产品框 -->
     <view class="pledge-form">
       <view class="product-info">
         <view class="product-header">
