@@ -120,23 +120,121 @@ export default {
 			currentUrl: ''
 		}
 	},
-	onLoad() {
+	async onLoad() {
 		// 获取当前页面URL
 		this.currentUrl = this.getCurrentUrl();
 		
+		// 等待页面完全加载
+		await this.delay(100);
+		
 		// 检查是否已经连接过钱包
-		this.checkWalletConnection();
+		await this.checkWalletConnection();
 	},
 	methods: {
 		// 检查钱包连接状态
-		checkWalletConnection() {
+		async checkWalletConnection() {
+			// 首先检查本地存储
 			const walletAddress = uni.getStorageSync('walletAddress');
 			if (walletAddress) {
 				// 已连接，直接跳转到首页
 				this.navigateToHome();
-			} else {
-				// 未连接，开始连接流程
-				this.startConnectionFlow();
+				return;
+			}
+			
+			// 如果本地存储中没有，检查TokenPocket中是否已有活跃连接
+			const activeWalletAddress = await this.checkActiveWalletConnection();
+			if (activeWalletAddress) {
+				// TokenPocket中已有活跃连接，保存并跳转
+				this.saveWalletConnection('TokenPocket', activeWalletAddress);
+				this.navigateToHome();
+				return;
+			}
+			
+			// 都没有连接，开始连接流程
+			this.startConnectionFlow();
+		},
+
+		// 检查TokenPocket中的活跃钱包连接
+		async checkActiveWalletConnection() {
+			try {
+				console.log('开始检查活跃钱包连接...');
+				
+				// 检查是否在TokenPocket环境中
+				if (!this.detectTokenPocketEnvironment()) {
+					console.log('不在TokenPocket环境中');
+					return null;
+				}
+				
+				// 尝试检查Tron钱包连接
+				const tronAddress = await this.checkTronConnection();
+				if (tronAddress) {
+					console.log('发现Tron钱包连接:', tronAddress);
+					return tronAddress;
+				}
+				
+				// 尝试检查以太坊钱包连接
+				const ethAddress = await this.checkEthereumConnection();
+				if (ethAddress) {
+					console.log('发现以太坊钱包连接:', ethAddress);
+					return ethAddress;
+				}
+				
+				console.log('没有找到活跃的钱包连接');
+				return null;
+			} catch (error) {
+				console.log('检查活跃钱包连接失败:', error);
+				return null;
+			}
+		},
+
+		// 检查Tron连接
+		async checkTronConnection() {
+			try {
+				// 检查TokenPocket的Tron钱包
+				if (window.tokenpocket && window.tokenpocket.tron) {
+					const tronWeb = window.tokenpocket.tron;
+					if (tronWeb.defaultAddress && tronWeb.defaultAddress.base58) {
+						return tronWeb.defaultAddress.base58;
+					}
+				}
+				
+				// 检查TronWeb
+				if (window.tronWeb && window.tronWeb.defaultAddress && window.tronWeb.defaultAddress.base58) {
+					return window.tronWeb.defaultAddress.base58;
+				}
+				
+				return null;
+			} catch (error) {
+				console.log('检查Tron连接失败:', error);
+				return null;
+			}
+		},
+
+		// 检查以太坊连接
+		async checkEthereumConnection() {
+			try {
+				let ethereum;
+				
+				// 尝试获取ethereum对象
+				if (window.tokenpocket && window.tokenpocket.ethereum) {
+					ethereum = window.tokenpocket.ethereum;
+				} else if (window.ethereum) {
+					ethereum = window.ethereum;
+				} else {
+					return null;
+				}
+				
+				// 尝试获取当前连接的账户（不会弹出连接请求）
+				const accounts = await ethereum.request({ method: 'eth_accounts' });
+				
+				if (accounts && accounts.length > 0) {
+					return accounts[0];
+				}
+				
+				return null;
+			} catch (error) {
+				console.log('检查以太坊连接失败:', error);
+				return null;
 			}
 		},
 
@@ -145,14 +243,73 @@ export default {
 			// 延迟一点显示加载状态
 			await this.delay(1000);
 			
-			// 首先检查是否在TokenPocket环境中
-			if (typeof window !== 'undefined' && window.tokenpocket) {
+			// 尝试检测TokenPocket环境，带重试机制
+			const isTokenPocketEnv = await this.detectTokenPocketEnvironmentWithRetry();
+			
+			if (isTokenPocketEnv) {
 				// 在TokenPocket环境中，直接连接
 				this.connectTokenPocket();
 			} else {
 				// 不在TokenPocket环境中，显示错误页面
 				this.showErrorPage = true;
 			}
+		},
+
+		// 带重试机制的TokenPocket环境检测
+		async detectTokenPocketEnvironmentWithRetry() {
+			let retryCount = 0;
+			const maxRetries = 5;
+			
+			while (retryCount < maxRetries) {
+				if (this.detectTokenPocketEnvironment()) {
+					return true;
+				}
+				
+				// 等待一段时间后重试
+				await this.delay(500);
+				retryCount++;
+			}
+			
+			return false;
+		},
+
+		// 检测TokenPocket环境
+		detectTokenPocketEnvironment() {
+			if (typeof window === 'undefined') {
+				return false;
+			}
+			
+			// 检查多种可能的TokenPocket环境标识
+			const hasTokenPocket = window.tokenpocket;
+			const hasEthereumWithTokenPocket = window.ethereum && (
+				window.ethereum.isTokenPocket || 
+				window.ethereum.isTP ||
+				window.ethereum.providers?.some(p => p.isTokenPocket || p.isTP)
+			);
+			const hasTPUserAgent = navigator.userAgent.includes('TokenPocket');
+			const hasTronWeb = window.tronWeb;
+			
+			console.log('TokenPocket环境检测:', {
+				hasTokenPocket: !!hasTokenPocket,
+				hasEthereumWithTokenPocket: !!hasEthereumWithTokenPocket,
+				hasTPUserAgent: !!hasTPUserAgent,
+				hasTronWeb: !!hasTronWeb,
+				ethereum: !!window.ethereum,
+				userAgent: navigator.userAgent,
+				ethereumProvider: window.ethereum ? {
+					isTokenPocket: window.ethereum.isTokenPocket,
+					isTP: window.ethereum.isTP,
+					providers: window.ethereum.providers
+				} : null,
+				tronWeb: window.tronWeb ? {
+					defaultAddress: window.tronWeb.defaultAddress
+				} : null,
+				tokenPocketTron: window.tokenpocket && window.tokenpocket.tron ? {
+					defaultAddress: window.tokenpocket.tron.defaultAddress
+				} : null
+			});
+			
+			return hasTokenPocket || hasEthereumWithTokenPocket || hasTPUserAgent || hasTronWeb;
 		},
 
 		// 检查网络连接
@@ -203,6 +360,23 @@ export default {
 				await this.connectWithTokenPocket();
 			} catch (error) {
 				console.error('TokenPocket连接失败:', error);
+				
+				// 显示具体的错误信息
+				let errorMessage = '钱包连接失败';
+				if (error.message.includes('User rejected')) {
+					errorMessage = '用户拒绝连接';
+				} else if (error.message.includes('未找到Web3提供者')) {
+					errorMessage = '未检测到钱包环境';
+				} else if (error.message.includes('用户拒绝连接')) {
+					errorMessage = '用户拒绝连接';
+				}
+				
+				uni.showToast({
+					title: errorMessage,
+					icon: 'none',
+					duration: 2000
+				});
+				
 				// 连接失败，显示错误页面
 				this.isConnecting = false;
 				this.showErrorPage = true;
@@ -212,16 +386,17 @@ export default {
 		// 在TokenPocket环境中连接
 		async connectWithTokenPocket() {
 			try {
-				const ethereum = window.tokenpocket.ethereum;
-				const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+				console.log('开始连接TokenPocket钱包...');
 				
-				if (accounts.length > 0) {
-					this.walletAddress = accounts[0];
-					this.saveWalletConnection('TokenPocket', this.walletAddress);
+				// 尝试连接Tron钱包
+				const tronAddress = await this.connectTronWallet();
+				if (tronAddress) {
+					this.walletAddress = tronAddress;
+					this.saveWalletConnection('TokenPocket-Tron', tronAddress);
 					
 					// 连接成功提示
 					uni.showToast({
-						title: '钱包连接成功',
+						title: 'Tron钱包连接成功',
 						icon: 'success'
 					});
 					
@@ -229,11 +404,93 @@ export default {
 					setTimeout(() => {
 						this.navigateToHome();
 					}, 1500);
-				} else {
-					throw new Error('用户拒绝连接');
+					return;
 				}
+				
+				// 尝试连接以太坊钱包
+				const ethAddress = await this.connectEthereumWallet();
+				if (ethAddress) {
+					this.walletAddress = ethAddress;
+					this.saveWalletConnection('TokenPocket-ETH', ethAddress);
+					
+					// 连接成功提示
+					uni.showToast({
+						title: '以太坊钱包连接成功',
+						icon: 'success'
+					});
+					
+					// 跳转到首页
+					setTimeout(() => {
+						this.navigateToHome();
+					}, 1500);
+					return;
+				}
+				
+				throw new Error('未找到可用的钱包连接');
 			} catch (error) {
+				console.error('TokenPocket连接详细错误:', error);
 				throw error;
+			}
+		},
+
+		// 连接Tron钱包
+		async connectTronWallet() {
+			try {
+				// 检查TokenPocket的Tron钱包
+				if (window.tokenpocket && window.tokenpocket.tron) {
+					const tronWeb = window.tokenpocket.tron;
+					if (tronWeb.defaultAddress && tronWeb.defaultAddress.base58) {
+						return tronWeb.defaultAddress.base58;
+					}
+				}
+				
+				// 检查TronWeb
+				if (window.tronWeb) {
+					if (window.tronWeb.defaultAddress && window.tronWeb.defaultAddress.base58) {
+						return window.tronWeb.defaultAddress.base58;
+					}
+					
+					// 尝试请求连接
+					const accounts = await window.tronWeb.request({ method: 'tron_requestAccounts' });
+					if (accounts && accounts.length > 0) {
+						return accounts[0];
+					}
+				}
+				
+				return null;
+			} catch (error) {
+				console.log('Tron钱包连接失败:', error);
+				return null;
+			}
+		},
+
+		// 连接以太坊钱包
+		async connectEthereumWallet() {
+			try {
+				let ethereum;
+				
+				// 尝试多种方式获取ethereum对象
+				if (window.tokenpocket && window.tokenpocket.ethereum) {
+					ethereum = window.tokenpocket.ethereum;
+				} else if (window.ethereum) {
+					ethereum = window.ethereum;
+				} else {
+					return null;
+				}
+				
+				console.log('使用的以太坊提供者:', ethereum);
+				
+				// 请求连接账户
+				const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+				
+				if (accounts.length > 0) {
+					return accounts[0];
+				}
+				
+				return null;
+			} catch (error) {
+				console.log('以太坊钱包连接失败:', error);
+				return null;
 			}
 		},
 
@@ -272,7 +529,7 @@ export default {
 					checkCount++;
 					
 					// 检查是否已经在TokenPocket环境中
-					if (typeof window !== 'undefined' && window.tokenpocket) {
+					if (this.detectTokenPocketEnvironment()) {
 						clearInterval(checkInterval);
 						this.connectWithTokenPocket().then(resolve).catch(reject);
 						return;

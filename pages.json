@@ -39,9 +39,23 @@
 		"path": "pages/account/index",
 		"style": {
 			"navigationBarTitleText": "我的",
-			"backgroundColor": "#222222"
+			"backgroundColor": "#222222",
+			"navigationStyle": "custom",
+			"app-plus": {
+				"titleNView": false
+			}
 		}
 	}, {
+		"path": "pages/record/index",
+		"style": {
+			"navigationBarTitleText": "Record",
+			"backgroundColor": "#222222",
+			"navigationStyle": "custom",
+			"app-plus": {
+				"titleNView": false
+			}
+		}
+	},{
 		"path": "pages/help/index",
 		"style": {
 			"navigationBarTitleText": "帮助中心",
