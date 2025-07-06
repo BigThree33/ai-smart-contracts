@@ -56,6 +56,16 @@
 			}
 		}
 	},{
+		"path": "pages/withdraw/index",
+		"style": {
+			"navigationBarTitleText": "Withdraw",
+			"backgroundColor": "#222222",
+			"navigationStyle": "custom",
+			"app-plus": {
+				"titleNView": false
+			}
+		}
+	},{
 		"path": "pages/help/index",
 		"style": {
 			"navigationBarTitleText": "帮助中心",
@@ -65,7 +75,17 @@
 				"titleNView": false
 			}
 		}
-	}, {
+	},{
+		"path": "pages/borrow/index",
+		"style": {
+			"navigationBarTitleText": "borrow",
+			"backgroundColor": "#222222",
+			"navigationStyle": "custom",
+			"app-plus": {
+				"titleNView": false
+			}
+		}
+	},  {
 		"path": "pages/webview/webview",
 		"style": {
 			"navigationBarTitleText": "外部链接",

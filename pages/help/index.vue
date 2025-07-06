@@ -219,9 +219,9 @@ const navigateToChat = () => {
     });
     
     // 后续可以添加实际的跳转代码
-    // uni.navigateTo({
-    //     url: '/pages/chat/index'
-    // });
+    uni.navigateTo({
+        url: '/pages/borrow/index'
+    });
 };
 
 // 原有的联系客服方法（如果还需要的话可以保留）

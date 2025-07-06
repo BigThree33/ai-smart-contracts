@@ -118,9 +118,9 @@ const handleNext = () => {
     
     console.log('进入下一步，选择的方式:', selectedMethod.value);
     // 后续添加跳转逻辑
-    // uni.navigateTo({
-    //     url: '/pages/withdrawal/index?method=' + selectedMethod.value
-    // });
+    uni.navigateTo({
+        url: '/pages/withdraw/index?method=' + selectedMethod.value
+    });
 };
 
 // 跳转到交易记录页面
