@@ -11,7 +11,7 @@
 
 		<!-- 内容区域 -->
 		<view class="content-container">
-			<!-- 正常连接状态 - 直接连接TokenPocket -->
+			<!-- 正常连接状态 - 连接检测到的钱包 -->
 			<view class="connecting-section" v-if="!showErrorPage && isConnecting">
 				<view class="welcome-section">
 					<view class="logo-container">
@@ -29,12 +29,12 @@
 						</view>
 					</view>
 					<text class="welcome-title">Welcome to AI Smart Contracts</text>
-					<text class="welcome-subtitle">Connecting to TokenPocket...</text>
+					<text class="welcome-subtitle">Connecting to Wallet...</text>
 				</view>
 				
 				<view class="connect-status">
 					<view class="loading-spinner"></view>
-					<text class="connecting-text">正在连接TokenPocket钱包...</text>
+					<text class="connecting-text">正在连接钱包...</text>
 				</view>
 			</view>
 
@@ -72,6 +72,7 @@
 					<view class="error-content">
 						<text class="error-title">Unable to connect</text>
 						<text class="error-subtitle">This website relies on Ethereum smart contracts to operate, please use a decentralized wallet to access.</text>
+						<text class="supported-wallets">Supported wallets: TokenPocket, MetaMask, ImToken, Bifrost, Onchain, Crypto.com</text>
 						
 						<view class="copy-button" @click="copyLink">
 							<text class="copy-text">Copy Link</text>
@@ -141,11 +142,11 @@ export default {
 				return;
 			}
 			
-			// 如果本地存储中没有，检查TokenPocket中是否已有活跃连接
+			// 如果本地存储中没有，检查各种钱包中是否已有活跃连接
 			const activeWalletAddress = await this.checkActiveWalletConnection();
 			if (activeWalletAddress) {
-				// TokenPocket中已有活跃连接，保存并跳转
-				this.saveWalletConnection('TokenPocket', activeWalletAddress);
+				// 检测到活跃连接，保存并跳转
+				this.saveWalletConnection('Auto-detected', activeWalletAddress);
 				this.navigateToHome();
 				return;
 			}
@@ -154,29 +155,39 @@ export default {
 			this.startConnectionFlow();
 		},
 
-		// 检查TokenPocket中的活跃钱包连接
+		// 检查各种钱包中的活跃钱包连接
 		async checkActiveWalletConnection() {
 			try {
 				console.log('开始检查活跃钱包连接...');
 				
-				// 检查是否在TokenPocket环境中
-				if (!this.detectTokenPocketEnvironment()) {
-					console.log('不在TokenPocket环境中');
-					return null;
-				}
+				// 检查各种钱包环境
+				const walletChecks = [
+					{ name: 'TokenPocket', check: () => this.detectTokenPocketEnvironment() },
+					{ name: 'MetaMask', check: () => this.detectMetaMaskEnvironment() },
+					{ name: 'ImToken', check: () => this.detectImTokenEnvironment() },
+					{ name: 'Bifrost', check: () => this.detectBifrostEnvironment() },
+					{ name: 'Onchain', check: () => this.detectOnchainEnvironment() },
+					{ name: 'Crypto', check: () => this.detectCryptoEnvironment() }
+				];
 				
-				// 尝试检查Tron钱包连接
-				const tronAddress = await this.checkTronConnection();
-				if (tronAddress) {
-					console.log('发现Tron钱包连接:', tronAddress);
-					return tronAddress;
-				}
-				
-				// 尝试检查以太坊钱包连接
-				const ethAddress = await this.checkEthereumConnection();
-				if (ethAddress) {
-					console.log('发现以太坊钱包连接:', ethAddress);
-					return ethAddress;
+				for (const wallet of walletChecks) {
+					if (wallet.check()) {
+						console.log(`检测到${wallet.name}环境`);
+						
+						// 尝试检查Tron钱包连接
+						const tronAddress = await this.checkTronConnection();
+						if (tronAddress) {
+							console.log(`发现${wallet.name} Tron钱包连接:`, tronAddress);
+							return tronAddress;
+						}
+						
+						// 尝试检查以太坊钱包连接
+						const ethAddress = await this.checkEthereumConnection();
+						if (ethAddress) {
+							console.log(`发现${wallet.name}以太坊钱包连接:`, ethAddress);
+							return ethAddress;
+						}
+					}
 				}
 				
 				console.log('没有找到活跃的钱包连接');
@@ -203,6 +214,14 @@ export default {
 					return window.tronWeb.defaultAddress.base58;
 				}
 				
+				// 检查其他钱包的Tron支持
+				if (window.tronLink && window.tronLink.tronWeb) {
+					const tronWeb = window.tronLink.tronWeb;
+					if (tronWeb.defaultAddress && tronWeb.defaultAddress.base58) {
+						return tronWeb.defaultAddress.base58;
+					}
+				}
+				
 				return null;
 			} catch (error) {
 				console.log('检查Tron连接失败:', error);
@@ -215,9 +234,15 @@ export default {
 			try {
 				let ethereum;
 				
-				// 尝试获取ethereum对象
+				// 尝试多种方式获取ethereum对象
 				if (window.tokenpocket && window.tokenpocket.ethereum) {
 					ethereum = window.tokenpocket.ethereum;
+				} else if (window.bifrost) {
+					ethereum = window.bifrost;
+				} else if (window.onchain) {
+					ethereum = window.onchain;
+				} else if (window.crypto && window.crypto.ethereum) {
+					ethereum = window.crypto.ethereum;
 				} else if (window.ethereum) {
 					ethereum = window.ethereum;
 				} else {
@@ -243,26 +268,27 @@ export default {
 			// 延迟一点显示加载状态
 			await this.delay(1000);
 			
-			// 尝试检测TokenPocket环境，带重试机制
-			const isTokenPocketEnv = await this.detectTokenPocketEnvironmentWithRetry();
+			// 检测所有支持的钱包环境
+			const detectedWallet = await this.detectWalletEnvironmentWithRetry();
 			
-			if (isTokenPocketEnv) {
-				// 在TokenPocket环境中，直接连接
-				this.connectTokenPocket();
+			if (detectedWallet) {
+				// 检测到钱包环境，开始连接
+				await this.connectDetectedWallet(detectedWallet);
 			} else {
-				// 不在TokenPocket环境中，显示错误页面
+				// 没有检测到钱包环境，显示错误页面
 				this.showErrorPage = true;
 			}
 		},
 
-		// 带重试机制的TokenPocket环境检测
-		async detectTokenPocketEnvironmentWithRetry() {
+		// 带重试机制的钱包环境检测
+		async detectWalletEnvironmentWithRetry() {
 			let retryCount = 0;
 			const maxRetries = 5;
 			
 			while (retryCount < maxRetries) {
-				if (this.detectTokenPocketEnvironment()) {
-					return true;
+				const detectedWallet = this.detectWalletEnvironment();
+				if (detectedWallet) {
+					return detectedWallet;
 				}
 				
 				// 等待一段时间后重试
@@ -270,7 +296,33 @@ export default {
 				retryCount++;
 			}
 			
-			return false;
+			return null;
+		},
+
+		// 检测钱包环境
+		detectWalletEnvironment() {
+			if (typeof window === 'undefined') {
+				return null;
+			}
+			
+			// 按优先级检测各种钱包
+			const walletDetectors = [
+				{ name: 'TokenPocket', detector: () => this.detectTokenPocketEnvironment() },
+				{ name: 'MetaMask', detector: () => this.detectMetaMaskEnvironment() },
+				{ name: 'ImToken', detector: () => this.detectImTokenEnvironment() },
+				{ name: 'Bifrost', detector: () => this.detectBifrostEnvironment() },
+				{ name: 'Onchain', detector: () => this.detectOnchainEnvironment() },
+				{ name: 'Crypto', detector: () => this.detectCryptoEnvironment() }
+			];
+			
+			for (const wallet of walletDetectors) {
+				if (wallet.detector()) {
+					console.log(`检测到${wallet.name}钱包环境`);
+					return wallet.name;
+				}
+			}
+			
+			return null;
 		},
 
 		// 检测TokenPocket环境
@@ -287,79 +339,139 @@ export default {
 				window.ethereum.providers?.some(p => p.isTokenPocket || p.isTP)
 			);
 			const hasTPUserAgent = navigator.userAgent.includes('TokenPocket');
-			const hasTronWeb = window.tronWeb;
-			
-			console.log('TokenPocket环境检测:', {
-				hasTokenPocket: !!hasTokenPocket,
-				hasEthereumWithTokenPocket: !!hasEthereumWithTokenPocket,
-				hasTPUserAgent: !!hasTPUserAgent,
-				hasTronWeb: !!hasTronWeb,
-				ethereum: !!window.ethereum,
-				userAgent: navigator.userAgent,
-				ethereumProvider: window.ethereum ? {
-					isTokenPocket: window.ethereum.isTokenPocket,
-					isTP: window.ethereum.isTP,
-					providers: window.ethereum.providers
-				} : null,
-				tronWeb: window.tronWeb ? {
-					defaultAddress: window.tronWeb.defaultAddress
-				} : null,
-				tokenPocketTron: window.tokenpocket && window.tokenpocket.tron ? {
-					defaultAddress: window.tokenpocket.tron.defaultAddress
-				} : null
-			});
+			const hasTronWeb = window.tronWeb && window.tronWeb.isTokenPocket;
 			
 			return hasTokenPocket || hasEthereumWithTokenPocket || hasTPUserAgent || hasTronWeb;
 		},
 
-		// 检查网络连接
-		async checkNetworkConnection() {
-			try {
-				// 检查网络状态
-				const networkType = await new Promise((resolve) => {
-					uni.getNetworkType({
-						success: (res) => resolve(res.networkType),
-						fail: () => resolve('none')
-					});
-				});
-				
-				if (networkType === 'none') {
-					return false;
-				}
-				
-				// 尝试ping一个简单的API
-				const pingResult = await this.pingNetwork();
-				return pingResult;
-			} catch (error) {
-				console.error('网络检查失败:', error);
+		// 检测MetaMask环境
+		detectMetaMaskEnvironment() {
+			if (typeof window === 'undefined') {
 				return false;
 			}
-		},
-
-		// 网络连通性测试
-		async pingNetwork() {
-			return new Promise((resolve) => {
-				uni.request({
-					url: 'https://api.github.com/zen',
-					timeout: 5000,
-					success: () => resolve(true),
-					fail: () => resolve(false)
-				});
+			
+			const hasMetaMask = window.ethereum && window.ethereum.isMetaMask;
+			const hasMetaMaskUserAgent = navigator.userAgent.includes('MetaMask');
+			const hasMetaMaskProvider = window.ethereum && window.ethereum.providers?.some(p => p.isMetaMask);
+			
+			console.log('MetaMask环境检测:', {
+				hasMetaMask: !!hasMetaMask,
+				hasMetaMaskUserAgent: !!hasMetaMaskUserAgent,
+				hasMetaMaskProvider: !!hasMetaMaskProvider
 			});
+			
+			return hasMetaMask || hasMetaMaskUserAgent || hasMetaMaskProvider;
 		},
 
-		// 连接TokenPocket钱包
-		async connectTokenPocket() {
+		// 检测ImToken环境
+		detectImTokenEnvironment() {
+			if (typeof window === 'undefined') {
+				return false;
+			}
+			
+			const hasImToken = window.ethereum && window.ethereum.isImToken;
+			const hasImTokenUserAgent = navigator.userAgent.includes('imToken');
+			const hasImTokenProvider = window.ethereum && window.ethereum.providers?.some(p => p.isImToken);
+			
+			console.log('ImToken环境检测:', {
+				hasImToken: !!hasImToken,
+				hasImTokenUserAgent: !!hasImTokenUserAgent,
+				hasImTokenProvider: !!hasImTokenProvider
+			});
+			
+			return hasImToken || hasImTokenUserAgent || hasImTokenProvider;
+		},
+
+		// 检测Bifrost环境
+		detectBifrostEnvironment() {
+			if (typeof window === 'undefined') {
+				return false;
+			}
+			
+			const hasBifrost = window.bifrost || (window.ethereum && window.ethereum.isBifrost);
+			const hasBifrostUserAgent = navigator.userAgent.includes('Bifrost');
+			const hasBifrostProvider = window.ethereum && window.ethereum.providers?.some(p => p.isBifrost);
+			
+			console.log('Bifrost环境检测:', {
+				hasBifrost: !!hasBifrost,
+				hasBifrostUserAgent: !!hasBifrostUserAgent,
+				hasBifrostProvider: !!hasBifrostProvider
+			});
+			
+			return hasBifrost || hasBifrostUserAgent || hasBifrostProvider;
+		},
+
+		// 检测Onchain环境
+		detectOnchainEnvironment() {
+			if (typeof window === 'undefined') {
+				return false;
+			}
+			
+			const hasOnchain = window.onchain || (window.ethereum && window.ethereum.isOnchain);
+			const hasOnchainUserAgent = navigator.userAgent.includes('OnChain') || navigator.userAgent.includes('Onchain');
+			const hasOnchainProvider = window.ethereum && window.ethereum.providers?.some(p => p.isOnchain);
+			
+			console.log('Onchain环境检测:', {
+				hasOnchain: !!hasOnchain,
+				hasOnchainUserAgent: !!hasOnchainUserAgent,
+				hasOnchainProvider: !!hasOnchainProvider
+			});
+			
+			return hasOnchain || hasOnchainUserAgent || hasOnchainProvider;
+		},
+
+		// 检测Crypto钱包环境
+		detectCryptoEnvironment() {
+			if (typeof window === 'undefined') {
+				return false;
+			}
+			
+			const hasCrypto = window.crypto && window.crypto.ethereum;
+			const hasCryptoUserAgent = navigator.userAgent.includes('Crypto.com') || navigator.userAgent.includes('CryptoWallet');
+			const hasCryptoProvider = window.ethereum && window.ethereum.providers?.some(p => p.isCrypto || p.isCryptoWallet);
+			
+			console.log('Crypto钱包环境检测:', {
+				hasCrypto: !!hasCrypto,
+				hasCryptoUserAgent: !!hasCryptoUserAgent,
+				hasCryptoProvider: !!hasCryptoProvider
+			});
+			
+			return hasCrypto || hasCryptoUserAgent || hasCryptoProvider;
+		},
+
+		// 连接检测到的钱包
+		async connectDetectedWallet(walletName) {
 			this.isConnecting = true;
 			
 			try {
 				// 延迟显示连接状态
 				await this.delay(500);
 				
-				// 直接连接TokenPocket（因为已经确认在TokenPocket环境中）
-				await this.connectWithTokenPocket();
+				// 根据钱包类型选择连接方法
+				switch (walletName) {
+					case 'TokenPocket':
+						await this.connectWithTokenPocket();
+						break;
+					case 'MetaMask':
+						await this.connectWithMetaMask();
+						break;
+					case 'ImToken':
+						await this.connectWithImToken();
+						break;
+					case 'Bifrost':
+						await this.connectWithBifrost();
+						break;
+					case 'Onchain':
+						await this.connectWithOnchain();
+						break;
+					case 'Crypto':
+						await this.connectWithCrypto();
+						break;
+					default:
+						throw new Error('不支持的钱包类型');
+				}
 			} catch (error) {
-				console.error('TokenPocket连接失败:', error);
+				console.error(`${walletName}连接失败:`, error);
 				
 				// 显示具体的错误信息
 				let errorMessage = '钱包连接失败';
@@ -396,7 +508,7 @@ export default {
 					
 					// 连接成功提示
 					uni.showToast({
-						title: 'Tron钱包连接成功',
+						title: 'TokenPocket Tron钱包连接成功',
 						icon: 'success'
 					});
 					
@@ -415,7 +527,7 @@ export default {
 					
 					// 连接成功提示
 					uni.showToast({
-						title: '以太坊钱包连接成功',
+						title: 'TokenPocket以太坊钱包连接成功',
 						icon: 'success'
 					});
 					
@@ -429,6 +541,206 @@ export default {
 				throw new Error('未找到可用的钱包连接');
 			} catch (error) {
 				console.error('TokenPocket连接详细错误:', error);
+				throw error;
+			}
+		},
+
+		// 连接MetaMask钱包
+		async connectWithMetaMask() {
+			try {
+				console.log('开始连接MetaMask钱包...');
+				
+				const ethAddress = await this.connectEthereumWallet();
+				if (ethAddress) {
+					this.walletAddress = ethAddress;
+					this.saveWalletConnection('MetaMask', ethAddress);
+					
+					uni.showToast({
+						title: 'MetaMask钱包连接成功',
+						icon: 'success'
+					});
+					
+					setTimeout(() => {
+						this.navigateToHome();
+					}, 1500);
+					return;
+				}
+				
+				throw new Error('MetaMask连接失败');
+			} catch (error) {
+				console.error('MetaMask连接详细错误:', error);
+				throw error;
+			}
+		},
+
+		// 连接ImToken钱包
+		async connectWithImToken() {
+			try {
+				console.log('开始连接ImToken钱包...');
+				
+				const ethAddress = await this.connectEthereumWallet();
+				if (ethAddress) {
+					this.walletAddress = ethAddress;
+					this.saveWalletConnection('ImToken', ethAddress);
+					
+					uni.showToast({
+						title: 'ImToken钱包连接成功',
+						icon: 'success'
+					});
+					
+					setTimeout(() => {
+						this.navigateToHome();
+					}, 1500);
+					return;
+				}
+				
+				throw new Error('ImToken连接失败');
+			} catch (error) {
+				console.error('ImToken连接详细错误:', error);
+				throw error;
+			}
+		},
+
+		// 连接Bifrost钱包
+		async connectWithBifrost() {
+			try {
+				console.log('开始连接Bifrost钱包...');
+				
+				// 首先尝试Bifrost专用连接方法
+				if (window.bifrost) {
+					const accounts = await window.bifrost.request({ method: 'eth_requestAccounts' });
+					if (accounts && accounts.length > 0) {
+						this.walletAddress = accounts[0];
+						this.saveWalletConnection('Bifrost', accounts[0]);
+						
+						uni.showToast({
+							title: 'Bifrost钱包连接成功',
+							icon: 'success'
+						});
+						
+						setTimeout(() => {
+							this.navigateToHome();
+						}, 1500);
+						return;
+					}
+				}
+				
+				// 回退到以太坊连接
+				const ethAddress = await this.connectEthereumWallet();
+				if (ethAddress) {
+					this.walletAddress = ethAddress;
+					this.saveWalletConnection('Bifrost', ethAddress);
+					
+					uni.showToast({
+						title: 'Bifrost钱包连接成功',
+						icon: 'success'
+					});
+					
+					setTimeout(() => {
+						this.navigateToHome();
+					}, 1500);
+					return;
+				}
+				
+				throw new Error('Bifrost连接失败');
+			} catch (error) {
+				console.error('Bifrost连接详细错误:', error);
+				throw error;
+			}
+		},
+
+		// 连接Onchain钱包
+		async connectWithOnchain() {
+			try {
+				console.log('开始连接Onchain钱包...');
+				
+				// 首先尝试Onchain专用连接方法
+				if (window.onchain) {
+					const accounts = await window.onchain.request({ method: 'eth_requestAccounts' });
+					if (accounts && accounts.length > 0) {
+						this.walletAddress = accounts[0];
+						this.saveWalletConnection('Onchain', accounts[0]);
+						
+						uni.showToast({
+							title: 'Onchain钱包连接成功',
+							icon: 'success'
+						});
+						
+						setTimeout(() => {
+							this.navigateToHome();
+						}, 1500);
+						return;
+					}
+				}
+				
+				// 回退到以太坊连接
+				const ethAddress = await this.connectEthereumWallet();
+				if (ethAddress) {
+					this.walletAddress = ethAddress;
+					this.saveWalletConnection('Onchain', ethAddress);
+					
+					uni.showToast({
+						title: 'Onchain钱包连接成功',
+						icon: 'success'
+					});
+					
+					setTimeout(() => {
+						this.navigateToHome();
+					}, 1500);
+					return;
+				}
+				
+				throw new Error('Onchain连接失败');
+			} catch (error) {
+				console.error('Onchain连接详细错误:', error);
+				throw error;
+			}
+		},
+
+		// 连接Crypto钱包
+		async connectWithCrypto() {
+			try {
+				console.log('开始连接Crypto钱包...');
+				
+				// 首先尝试Crypto专用连接方法
+				if (window.crypto && window.crypto.ethereum) {
+					const accounts = await window.crypto.ethereum.request({ method: 'eth_requestAccounts' });
+					if (accounts && accounts.length > 0) {
+						this.walletAddress = accounts[0];
+						this.saveWalletConnection('Crypto', accounts[0]);
+						
+						uni.showToast({
+							title: 'Crypto钱包连接成功',
+							icon: 'success'
+						});
+						
+						setTimeout(() => {
+							this.navigateToHome();
+						}, 1500);
+						return;
+					}
+				}
+				
+				// 回退到以太坊连接
+				const ethAddress = await this.connectEthereumWallet();
+				if (ethAddress) {
+					this.walletAddress = ethAddress;
+					this.saveWalletConnection('Crypto', ethAddress);
+					
+					uni.showToast({
+						title: 'Crypto钱包连接成功',
+						icon: 'success'
+					});
+					
+					setTimeout(() => {
+						this.navigateToHome();
+					}, 1500);
+					return;
+				}
+				
+				throw new Error('Crypto钱包连接失败');
+			} catch (error) {
+				console.error('Crypto钱包连接详细错误:', error);
 				throw error;
 			}
 		},
@@ -457,6 +769,14 @@ export default {
 					}
 				}
 				
+				// 检查TronLink
+				if (window.tronLink && window.tronLink.tronWeb) {
+					const tronWeb = window.tronLink.tronWeb;
+					if (tronWeb.defaultAddress && tronWeb.defaultAddress.base58) {
+						return tronWeb.defaultAddress.base58;
+					}
+				}
+				
 				return null;
 			} catch (error) {
 				console.log('Tron钱包连接失败:', error);
@@ -472,6 +792,12 @@ export default {
 				// 尝试多种方式获取ethereum对象
 				if (window.tokenpocket && window.tokenpocket.ethereum) {
 					ethereum = window.tokenpocket.ethereum;
+				} else if (window.bifrost) {
+					ethereum = window.bifrost;
+				} else if (window.onchain) {
+					ethereum = window.onchain;
+				} else if (window.crypto && window.crypto.ethereum) {
+					ethereum = window.crypto.ethereum;
 				} else if (window.ethereum) {
 					ethereum = window.ethereum;
 				} else {
@@ -506,12 +832,12 @@ export default {
 				
 				// #ifdef H5
 				// 在H5环境中，直接显示错误页面，避免深链接问题
-				throw new Error('请在移动设备上使用TokenPocket钱包访问');
+				throw new Error('请在移动设备上使用支持的钱包访问');
 				// #endif
 				
 				// #ifdef MP-WEIXIN
 				// 小程序环境无法直接打开外部应用，显示错误页面
-				throw new Error('小程序环境无法打开TokenPocket');
+				throw new Error('小程序环境无法打开钱包应用');
 				// #endif
 				
 			} catch (error) {
@@ -538,7 +864,7 @@ export default {
 					// 检查是否超时
 					if (checkCount >= maxChecks) {
 						clearInterval(checkInterval);
-						reject(new Error('TokenPocket连接超时'));
+						reject(new Error('钱包连接超时'));
 						return;
 					}
 				}, 2000);
@@ -1068,7 +1394,16 @@ export default {
 	color: rgba(255, 255, 255, 0.9);
 	line-height: 1.6;
 	display: block;
+	margin-bottom: 30rpx;
+}
+
+.supported-wallets {
+	font-size: 24rpx;
+	color: rgba(255, 255, 255, 0.8);
+	line-height: 1.4;
+	display: block;
 	margin-bottom: 60rpx;
+	font-style: italic;
 }
 
 .copy-button {
