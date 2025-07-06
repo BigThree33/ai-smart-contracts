@@ -49,6 +49,11 @@
             <text>Copy</text>
           </view>
         </view>
+        
+        <!-- 分享按钮 -->
+        <view class="share-button" @click="handleShareLink">
+          <text class="share-button-text">SHARE LINK</text>
+        </view>
       </view>
     </view>
   </view>
@@ -85,6 +90,37 @@ const copyShareLink = () => {
       uni.showToast({
         title: '链接已复制',
         icon: 'success'
+      });
+    }
+  });
+};
+
+// 分享链接
+const handleShareLink = () => {
+  uni.share({
+    provider: 'weixin',
+    scene: 'WXSceneSession',
+    type: 0,
+    href: shareLink.value,
+    title: 'AI智能合约交易平台',
+    summary: '邀请好友使用AI量化交易，获得20USDT奖励',
+    imageUrl: '/static/logo.png',
+    success: function(res) {
+      uni.showToast({
+        title: '分享成功',
+        icon: 'success'
+      });
+    },
+    fail: function(err) {
+      // 如果分享失败，可以复制链接作为备选方案
+      uni.setClipboardData({
+        data: shareLink.value,
+        success: function() {
+          uni.showToast({
+            title: '链接已复制到剪贴板',
+            icon: 'success'
+          });
+        }
       });
     }
   });
@@ -226,9 +262,12 @@ const copyShareLink = () => {
     display: flex;
     align-items: center;
     gap: 20rpx;
+    width: 100%;
+    box-sizing: border-box;
     
     .link-input {
       flex: 1;
+      min-width: 0; // 确保弹性项目能够正确收缩
       background-color: #f8f8f8;
       padding: 20rpx;
       border-radius: 10rpx;
@@ -249,11 +288,33 @@ const copyShareLink = () => {
       padding: 20rpx 30rpx;
       border-radius: 10rpx;
       border: 1px solid #e0e0e0;
+      flex-shrink: 0; // 防止复制按钮被压缩
+      white-space: nowrap; // 防止按钮文字换行
       
       text {
         font-size: 26rpx;
         color: #666666;
       }
+    }
+  }
+  
+  // 分享按钮
+  .share-button {
+    width: 100%;
+    height: 80rpx;
+    background: linear-gradient(to right, #3875f6, #52a3f3);
+    border-radius: 40rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 40rpx;
+    box-shadow: 0 4rpx 20rpx rgba(56, 117, 246, 0.3);
+    
+    .share-button-text {
+      font-size: 32rpx;
+      font-weight: bold;
+      color: #ffffff;
+      letter-spacing: 2rpx;
     }
   }
 }
