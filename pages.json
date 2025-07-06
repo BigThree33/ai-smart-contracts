@@ -56,6 +56,16 @@
 			}
 		}
 	},{
+		"path": "pages/withdraw/index",
+		"style": {
+			"navigationBarTitleText": "Withdraw",
+			"backgroundColor": "#222222",
+			"navigationStyle": "custom",
+			"app-plus": {
+				"titleNView": false
+			}
+		}
+	},{
 		"path": "pages/help/index",
 		"style": {
 			"navigationBarTitleText": "帮助中心",
