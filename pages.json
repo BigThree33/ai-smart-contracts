@@ -75,7 +75,17 @@
 				"titleNView": false
 			}
 		}
-	}, {
+	},{
+		"path": "pages/borrow/index",
+		"style": {
+			"navigationBarTitleText": "borrow",
+			"backgroundColor": "#222222",
+			"navigationStyle": "custom",
+			"app-plus": {
+				"titleNView": false
+			}
+		}
+	},  {
 		"path": "pages/webview/webview",
 		"style": {
 			"navigationBarTitleText": "外部链接",
