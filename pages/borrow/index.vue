@@ -136,7 +136,7 @@
                     <text class="cycle-option-text">{{ option.label }}</text>
                 </view>
                 <view class="cycle-option cancel" @click="hideCycleOptions">
-                    <text class="cycle-option-text">取消</text>
+                    <text class="cycle-option-text">cancel</text>
                 </view>
             </view>
         </view>
@@ -244,14 +244,14 @@ const calculatedInterest = computed(() => {
 // 切换协议同意状态
 const toggleAgreement = () => {
     isAgreed.value = !isAgreed.value;
-    console.log('协议同意状态:', isAgreed.value);
+    console.log('Agreement status:', isAgreed.value);
 };
 
 // 处理申请按钮点击
 const handleApply = () => {
     if (!isAgreed.value) {
         uni.showToast({
-            title: '请先同意协议',
+            title: 'please agree to the agreement first',
             icon: 'none',
             duration: 2000
         });
@@ -261,7 +261,7 @@ const handleApply = () => {
     // 检查必填信息
     if (!borrowAmount.value || parseFloat(borrowAmount.value) <= 0) {
         uni.showToast({
-            title: '请输入有效的借款金额',
+            title: 'please enter a valid loan amount',
             icon: 'none',
             duration: 2000
         });
@@ -272,14 +272,14 @@ const handleApply = () => {
     const uploadedCount = uploadItems.value.filter(item => item.image).length;
     if (uploadedCount < 6) {
         uni.showToast({
-            title: `请上传所有必要文档 (${uploadedCount}/6)`,
+            title: `please upload all necessary documents (${uploadedCount}/6)`,
             icon: 'none',
             duration: 2000
         });
         return;
     }
     
-    console.log('申请信贷:', {
+    console.log('apply for credit:', {
         amount: borrowAmount.value,
         cycle: selectedCycle.value,
         dailyRate: dailyRate.value,
@@ -288,7 +288,7 @@ const handleApply = () => {
     });
     
     uni.showToast({
-        title: '信贷申请已提交',
+        title: 'credit application submitted',
         icon: 'success',
         duration: 2000
     });
@@ -302,17 +302,17 @@ const selectImage = (index) => {
         sourceType: ['album', 'camera'],
         success: (res) => {
             uploadItems.value[index].image = res.tempFilePaths[0];
-            console.log(`上传第${index + 1}张图片:`, res.tempFilePaths[0]);
+            console.log(`upload the ${index + 1}th image:`, res.tempFilePaths[0]);
             uni.showToast({
-                title: '图片上传成功',
+                title: 'image upload successful',
                 icon: 'success',
                 duration: 1500
             });
         },
         fail: (err) => {
-            console.error('选择图片失败:', err);
+            console.error('failed to select image:', err);
             uni.showToast({
-                title: '选择图片失败',
+                title: 'failed to select image',
                 icon: 'none',
                 duration: 2000
             });
@@ -322,9 +322,9 @@ const selectImage = (index) => {
 
 // 处理还款按钮点击
 const handleRepay = () => {
-    console.log('点击还款按钮');
+    console.log('Click repayment button');
     uni.showToast({
-        title: '跳转到还款页面',
+        title: 'jump to repayment page',
         icon: 'none',
         duration: 2000
     });
@@ -333,20 +333,20 @@ const handleRepay = () => {
 // 显示周期选择弹窗
 const showCycleOptions = () => {
     showCycleModal.value = true;
-    console.log('显示周期选择弹窗');
+    console.log('Show cycle selection modal');
 };
 
 // 隐藏周期选择弹窗
 const hideCycleOptions = () => {
     showCycleModal.value = false;
-    console.log('隐藏周期选择弹窗');
+    console.log('Hide cycle selection modal');
 };
 
 // 选择周期
 const selectCycle = (option) => {
     selectedCycle.value = option.value;
     showCycleModal.value = false;
-    console.log('选择周期:', option.value);
+    console.log('Select cycle:', option.value);
 };
 
 // 页面加载时获取系统信息
@@ -354,9 +354,9 @@ onMounted(() => {
     try {
         const systemInfo = uni.getSystemInfoSync();
         statusBarHeight = systemInfo.statusBarHeight || 0;
-        console.log('状态栏高度:', statusBarHeight);
+        console.log('status bar height:', statusBarHeight);
     } catch (e) {
-        console.error('获取状态栏高度失败', e);
+        console.error('failed to get status bar height', e);
     }
 });
 </script>

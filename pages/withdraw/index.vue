@@ -24,19 +24,19 @@
                 <view class="balance-area">
                     <view class="balance-info">
                         <text class="balance-label">Available Balance(USDT)</text>
-                        <text class="balance-amount">$0.00</text>
+                        <text class="balance-amount">${{ availableBalance }}</text>
                     </view>
 
                     <!-- 收益统计小板块 -->
                     <view class="revenue-stats">
                         <view class="stat-item">
                             <text class="stat-label">Total revenue(USDT)</text>
-                            <text class="stat-value">0.00</text>
+                            <text class="stat-value">{{ totalRevenue }}</text>
                         </view>
                         <view class="stat-divider">|</view>
                         <view class="stat-item">
                             <text class="stat-label">Earnings 24h(USDT)</text>
-                            <text class="stat-value">0.00</text>
+                            <text class="stat-value">{{ earnings24h }}</text>
                         </view>
                     </view>
                 </view>
@@ -53,9 +53,6 @@
                     <view class="tab-item" :class="{ 'active': activeTab === 'send' }" @click="switchTab('send')">
                         <text class="tab-text">SEND</text>
                     </view>
-                    <view class="tab-item" :class="{ 'active': activeTab === 'convert' }" @click="switchTab('convert')">
-                        <text class="tab-text">CONVERT</text>
-                    </view>
                 </view>
 
                 <!-- RECEIVE 内容 -->
@@ -67,19 +64,23 @@
                     <view class="currency-buttons">
                         <view class="currency-item" :class="{ 'selected': selectedCurrency === 'btc' }"
                             @click="selectCurrency('btc')">
-                            <uni-icons type="wallet" size="24" color="#f7931a"></uni-icons>
+                            <!-- BTC图标 -->
+                            <image class="crypto-icon" src="/static/btc.jpg" mode="aspectFit"></image>
                         </view>
                         <view class="currency-item" :class="{ 'selected': selectedCurrency === 'eth' }"
                             @click="selectCurrency('eth')">
-                            <uni-icons type="wallet" size="24" color="#627eea"></uni-icons>
+                            <!-- ETH图标 -->
+                            <image class="crypto-icon" src="/static/eth.jpg" mode="aspectFit"></image>
                         </view>
                         <view class="currency-item" :class="{ 'selected': selectedCurrency === 'usdt' }"
                             @click="selectCurrency('usdt')">
-                            <uni-icons type="wallet" size="24" color="#26a17b"></uni-icons>
+                            <!-- USDT图标 -->
+                            <image class="crypto-icon" src="/static/usdt.jpg" mode="aspectFit"></image>
                         </view>
-                        <view class="currency-item" :class="{ 'selected': selectedCurrency === 'ltc' }"
-                            @click="selectCurrency('ltc')">
-                            <uni-icons type="wallet" size="24" color="#bfbbbb"></uni-icons>
+                        <view class="currency-item" :class="{ 'selected': selectedCurrency === 'usdc' }"
+                            @click="selectCurrency('usdc')">
+                            <!-- LTC图标 (使用USDC图片替代) -->
+                            <image class="crypto-icon" src="/static/usdc.jpg" mode="aspectFit"></image>
                         </view>
                     </view>
 
@@ -89,19 +90,31 @@
                     <!-- USDT recharge 区域 -->
                     <view class="recharge-section">
                         <view class="recharge-header">
-                            <uni-icons type="wallet" size="20" color="#26a17b"></uni-icons>
-                            <text class="recharge-title">USDT recharge</text>
+                            <!-- USDT图标 -->
+                            <image class="crypto-icon-small" :src="getCurrentCurrencyIcon(selectedCurrency)" mode="aspectFit"></image>
+                            <text class="recharge-title">{{ selectedCurrency.toUpperCase() }} recharge</text>
                         </view>
 
                         <!-- ERC20 按钮 -->
                         <view class="network-button">
                             <text class="network-text">ERC20</text>
                         </view>
+                        
+                        <!-- 充值地址显示区域 -->
+                        <view class="address-section">
+                            <text class="address-label">Recharge Address</text>
+                            <view class="address-display">
+                                <text class="address-text">{{ getCurrentRechargeAddress() }}</text>
+                                <view class="copy-button" @click="copyRechargeAddress">
+                                    <text class="copy-text">Copy</text>
+                                </view>
+                            </view>
+                        </view>
 
                         <!-- 上传图片区域 -->
                         <view class="upload-area" @click="chooseImage">
                             <uni-icons type="camera" size="40" color="#999999"></uni-icons>
-                            <text class="upload-text">点击上传转账截图</text>
+                            <text class="upload-text">Click to upload transfer screenshot</text>
                             <image v-if="uploadedImage" :src="uploadedImage" class="uploaded-image"></image>
                         </view>
 
@@ -120,8 +133,9 @@
                             account for you. If you have any questions, please contact online customer service for
                             verification.
                         </text>
-                        <view class="withdraw-button" @click="handleSend">
-                            <text class="withdraw-button-text">WITHDRAW</text>
+                        <!-- RECEIVE 内容中的按钮 -->
+                        <view class="withdraw-button" @click="handleRecharge">
+                            <text class="withdraw-button-text">SUBMIT RECHARGE</text>
                         </view>
                     </view>
                 </view>
@@ -135,19 +149,23 @@
                     <view class="currency-buttons">
                         <view class="currency-item" :class="{ 'selected': selectedSendCurrency === 'btc' }"
                             @click="selectSendCurrency('btc')">
-                            <uni-icons type="wallet" size="24" color="#f7931a"></uni-icons>
+                            <!-- BTC图标 -->
+                            <image class="crypto-icon" src="/static/btc.jpg" mode="aspectFit"></image>
                         </view>
                         <view class="currency-item" :class="{ 'selected': selectedSendCurrency === 'eth' }"
                             @click="selectSendCurrency('eth')">
-                            <uni-icons type="wallet" size="24" color="#627eea"></uni-icons>
+                            <!-- ETH图标 -->
+                            <image class="crypto-icon" src="/static/eth.jpg" mode="aspectFit"></image>
                         </view>
                         <view class="currency-item" :class="{ 'selected': selectedSendCurrency === 'usdt' }"
                             @click="selectSendCurrency('usdt')">
-                            <uni-icons type="wallet" size="24" color="#26a17b"></uni-icons>
+                            <!-- USDT图标 -->
+                            <image class="crypto-icon" src="/static/usdt.jpg" mode="aspectFit"></image>
                         </view>
-                        <view class="currency-item" :class="{ 'selected': selectedSendCurrency === 'ltc' }"
-                            @click="selectSendCurrency('ltc')">
-                            <uni-icons type="wallet" size="24" color="#bfbbbb"></uni-icons>
+                        <view class="currency-item" :class="{ 'selected': selectedSendCurrency === 'usdc' }"
+                            @click="selectSendCurrency('usdc')">
+                            <!-- LTC图标 (使用USDC图片替代) -->
+                            <image class="crypto-icon" src="/static/usdc.jpg" mode="aspectFit"></image>
                         </view>
                     </view>
                     
@@ -157,8 +175,9 @@
                     <!-- USDT 提取区域 -->
                     <view class="send-section">
                         <view class="send-header">
-                            <uni-icons type="wallet" size="20" color="#26a17b"></uni-icons>
-                            <text class="send-title">USDT withdrawal</text>
+                            <!-- USDT图标 -->
+                            <image class="crypto-icon-small" :src="getCurrentCurrencyIcon(selectedSendCurrency)" mode="aspectFit"></image>
+                            <text class="send-title">{{selectedSendCurrency.toUpperCase()}} withdrawal</text>
                         </view>
                         
                         <!-- ERC20 按钮 -->
@@ -197,97 +216,21 @@
                         </text>
                         
                         <!-- WITHDRAW 大按钮 -->
-                        <view class="withdraw-button" @click="handleSend">
-                            <text class="withdraw-button-text">WITHDRAW</text>
+                        <view class="withdraw-button" @click="handleWithdraw">
+                            <text class="withdraw-button-text">SUBMIT WITHDRAW</text>
                         </view>
                     </view>
                 </view>
 
                 <!-- CONVERT 内容 -->
-                <view v-if="activeTab === 'convert'" class="tab-content">
-                    <!-- Currency Type 标题 -->
-                    <text class="section-title">Currency Type</text>
-                    
-                    <!-- 四个货币按钮 -->
-                    <view class="currency-buttons">
-                        <view class="currency-item" :class="{ 'selected': selectedConvertCurrency === 'btc' }"
-                            @click="selectConvertCurrency('btc')">
-                            <uni-icons type="wallet" size="24" color="#f7931a"></uni-icons>
-                        </view>
-                        <view class="currency-item" :class="{ 'selected': selectedConvertCurrency === 'eth' }"
-                            @click="selectConvertCurrency('eth')">
-                            <uni-icons type="wallet" size="24" color="#627eea"></uni-icons>
-                        </view>
-                        <view class="currency-item" :class="{ 'selected': selectedConvertCurrency === 'usdt' }"
-                            @click="selectConvertCurrency('usdt')">
-                            <uni-icons type="wallet" size="24" color="#26a17b"></uni-icons>
-                        </view>
-                        <view class="currency-item" :class="{ 'selected': selectedConvertCurrency === 'ltc' }"
-                            @click="selectConvertCurrency('ltc')">
-                            <uni-icons type="wallet" size="24" color="#bfbbbb"></uni-icons>
-                        </view>
-                    </view>
-                    
-                    <!-- 分割线 -->
-                    <view class="divider-line"></view>
-                    
-                    <!-- 转换区域 -->
-                    <view class="convert-section">
-                        <view class="convert-header">
-                            <uni-icons type="wallet" size="20" color="#26a17b"></uni-icons>
-                            <text class="convert-title">Currency Conversion</text>
-                        </view>
-                        
-                        <!-- From -->
-                        <text class="input-label">From</text>
-                        <view class="convert-input-container">
-                            <view class="currency-info">
-                                <uni-icons type="wallet" size="20" color="#007aff"></uni-icons>
-                                <text class="currency-name">USDC</text>
-                            </view>
-                            <view class="amount-input-wrapper">
-                                <input class="convert-amount-input" 
-                                       v-model="convertFromAmount" 
-                                       placeholder="0.00" 
-                                       type="number"
-                                       @input="onConvertAmountChange" />
-                                <view class="max-button" @click="setMaxConvertAmount">
-                                    <text class="max-text">MAX</text>
-                                </view>
-                            </view>
-                        </view>
-                        
-                        <!-- 分割线 -->
-                        <view class="divider-line"></view>
-                        
-                        <!-- To -->
-                        <text class="input-label">To</text>
-                        <view class="convert-input-container">
-                            <view class="currency-info">
-                                <uni-icons type="wallet" size="20" color="#26a17b"></uni-icons>
-                                <text class="currency-name">USDT</text>
-                            </view>
-                            <view class="amount-display">
-                                <text class="convert-result">{{ convertToAmount }}</text>
-                            </view>
-                        </view>
-                        
-                        <!-- 分割线 -->
-                        <view class="divider-line"></view>
-                        
-                        <!-- CONVERT 大按钮 -->
-                        <view class="convert-button" @click="handleConvert">
-                            <text class="convert-button-text">CONVERT</text>
-                        </view>
-                    </view>
-                </view>
             </view>
         </view>
     </view>
 </template>
-
 <script setup>
 import { ref, onMounted, computed } from 'vue';
+import { api, apiUtils } from '@/utils/api.js';
+import store from '@/store/index.js';
 
 // 获取状态栏高度
 let statusBarHeight = 0;
@@ -295,10 +238,16 @@ let statusBarHeight = 0;
 // 当前激活的标签页
 const activeTab = ref('receive');
 
+// 用户账户数据
+const availableBalance = ref('0.00');
+const totalRevenue = ref('0.00');
+const earnings24h = ref('0.00');
+
 // RECEIVE 相关数据
 const selectedCurrency = ref('usdt');
 const rechargeAmount = ref('');
 const uploadedImage = ref('');
+const rechargeAddresses = ref({}); // 新增：存储充值地址
 
 // SEND 相关数据
 const selectedSendCurrency = ref('usdt');
@@ -308,6 +257,34 @@ const withdrawalAmount = ref('');
 // CONVERT 相关数据
 const selectedConvertCurrency = ref('usdt');
 const convertFromAmount = ref('');
+
+// 获取用户信息
+const fetchUserInfo = async () => {
+    try {
+        apiUtils.showLoading('Loading account info...');
+        
+        const data = await api.user.getInfo();
+        
+        if (data) {
+            // 映射接口返回的数据到页面显示字段
+            availableBalance.value = apiUtils.formatAmount(data.money);
+            totalRevenue.value = apiUtils.formatAmount(data.total_revenue);
+            earnings24h.value = apiUtils.formatAmount(data.earnings_24h);
+            
+            console.log('Account information updated successfully:', {
+                availableBalance: availableBalance.value,
+                totalRevenue: totalRevenue.value,
+                earnings24h: earnings24h.value
+            });
+        }
+        
+    } catch (error) {
+        console.error('Failed to get user info:', error);
+        apiUtils.showError('Failed to load account data');
+    } finally {
+        apiUtils.hideLoading();
+    }
+};
 
 // 计算转换后的金额（这里假设1:1的汇率，实际应该从API获取）
 const convertToAmount = computed(() => {
@@ -320,13 +297,13 @@ const convertToAmount = computed(() => {
 // 切换标签页
 const switchTab = (tab) => {
     activeTab.value = tab;
-    console.log('切换到标签页:', tab);
+    console.log('change tab:', tab);
 };
 
 // RECEIVE 相关方法
 const selectCurrency = (currency) => {
     selectedCurrency.value = currency;
-    console.log('选择货币:', currency);
+    console.log('select currency:', currency);
 };
 
 const chooseImage = () => {
@@ -335,63 +312,145 @@ const chooseImage = () => {
         sizeType: ['compressed'],
         sourceType: ['album', 'camera'],
         success: (res) => {
-            uploadedImage.value = res.tempFilePaths[0];
-            console.log('选择图片:', res.tempFilePaths[0]);
+            // 判断平台
+            // #ifdef H5
+            // H5环境下使用FileReader来读取文件
+            const file = res.tempFiles[0];
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                uploadedImage.value = e.target.result; // 这已经是base64格式
+                console.log('image converted to base64 successfully');
+            };
+            reader.onerror = (e) => {
+                console.error('image conversion to base64 failed:', e);
+                uni.showToast({
+                    title: 'image processing failed',
+                    icon: 'none'
+                });
+            };
+            reader.readAsDataURL(file);
+            // #endif
+
+            // #ifdef APP-PLUS || MP
+            // App或小程序环境下使用getFileSystemManager
+            const fileManager = uni.getFileSystemManager();
+            fileManager.readFile({
+                filePath: res.tempFilePaths[0],
+                encoding: 'base64',
+                success: (res) => {
+                    uploadedImage.value = 'data:image/jpeg;base64,' + res.data;
+                    console.log('image converted to base64 successfully');
+                },
+                fail: (err) => {
+                    console.error('image conversion to base64 failed:', err);
+                    uni.showToast({
+                        title: 'image processing failed',
+                        icon: 'none'
+                    });
+                }
+            });
+            // #endif
         },
         fail: (err) => {
-            console.error('选择图片失败:', err);
+            console.error('image selection failed:', err);
+            uni.showToast({
+                title: 'image selection failed',
+                icon: 'none'
+            });
         }
     });
 };
 
-const handleRecharge = () => {
-    if (!uploadedImage.value) {
+// 获取授权token的方法
+const getAuthToken = () => {
+    // 从全局状态获取token
+    const token = store.getToken();
+    if (!token) {
         uni.showToast({
-            title: '请先上传转账截图',
-            icon: 'none',
-            duration: 2000
+            title: 'please connect wallet first',
+            icon: 'none'
         });
+        setTimeout(() => {
+            uni.navigateTo({
+                url: '/pages/wallet/connect'
+            });
+        }, 1500);
+        return '';
+    }
+    return token;
+};
+
+// 处理充值逻辑
+const handleRecharge = async () => {
+    if (!uploadedImage.value) {
+        apiUtils.showError('please upload transaction screenshot first');
         return;
     }
     
     if (!rechargeAmount.value || parseFloat(rechargeAmount.value) <= 0) {
-        uni.showToast({
-            title: '请输入有效的充值金额',
-            icon: 'none',
-            duration: 2000
-        });
+        apiUtils.showError('please enter a valid recharge amount');
         return;
     }
-    
-    console.log('充值信息:', {
-        currency: selectedCurrency.value,
-        amount: rechargeAmount.value,
-        image: uploadedImage.value
-    });
-    
-    uni.showToast({
-        title: '充值申请已提交',
-        icon: 'success',
-        duration: 2000
-    });
+
+    try {
+        apiUtils.showLoading('submitting...');
+
+        const token = getAuthToken();
+        if (!token) {
+            return;
+        }
+
+        console.log('=== image information debugging ===');
+        console.log('uploadedImage.value length:', uploadedImage.value.length);
+        
+        // 使用新的API方法
+        const responseData = await api.transaction.recharge(
+            selectedCurrency.value,
+            rechargeAmount.value,
+            'ERC20',
+            uploadedImage.value
+        );
+
+        console.log('recharge response:', responseData);
+
+        // 处理响应
+        if (responseData.code === 0 || responseData.success === true) {
+            apiUtils.showSuccess('recharge application submitted successfully');
+            rechargeAmount.value = '';
+            uploadedImage.value = '';
+            
+            // 充值成功后重新获取用户信息
+            await fetchUserInfo();
+        } else {
+            apiUtils.showError(responseData.info || responseData.message || 'recharge failed');
+        }
+
+    } catch (error) {
+        console.error('=== recharge failed ===');
+        console.error('error information:', error);
+        apiUtils.showError('network error, please try again later');
+    } finally {
+        apiUtils.hideLoading();
+    }
 };
 
 // SEND 相关方法
 const selectSendCurrency = (currency) => {
     selectedSendCurrency.value = currency;
-    console.log('选择发送货币:', currency);
+    console.log('select send currency:', currency);
 };
 
 const setMaxAmount = () => {
-    // 这里应该设置用户的最大可用余额
-    withdrawalAmount.value = '100.00'; // 示例值
-    console.log('设置最大金额');
+    // 设置为用户的最大可用余额
+    withdrawalAmount.value = availableBalance.value.replace(/,/g, ''); // 移除千分位符号
+    console.log('set max amount');
 };
 
-const handleSend = () => {
+// 处理提现逻辑
+const handleWithdraw = async () => {
     if (!withdrawalAddress.value.trim()) {
         uni.showToast({
-            title: '请输入提取地址',
+            title: 'please enter withdrawal address',
             icon: 'none',
             duration: 2000
         });
@@ -400,88 +459,189 @@ const handleSend = () => {
     
     if (!withdrawalAmount.value || parseFloat(withdrawalAmount.value) <= 0) {
         uni.showToast({
-            title: '请输入有效的提取金额',
+            title: 'please enter a valid withdrawal amount',
             icon: 'none',
             duration: 2000
         });
         return;
     }
-    
-    console.log('提取信息:', {
-        currency: selectedSendCurrency.value,
-        address: withdrawalAddress.value,
-        amount: withdrawalAmount.value
-    });
-    
-    uni.showToast({
-        title: '提取申请已提交',
-        icon: 'success',
-        duration: 2000
-    });
+
+    try {
+        uni.showLoading({
+            title: 'submitting...'
+        });
+
+        // 这里可以对接提现API（如果有的话）
+        console.log('withdrawal information:', {
+            currency: selectedSendCurrency.value,
+            address: withdrawalAddress.value,
+            amount: withdrawalAmount.value,
+            network: 'ERC20'
+        });
+
+        // 模拟API调用延迟
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        uni.hideLoading();
+        
+        uni.showToast({
+            title: 'withdrawal application submitted successfully',
+            icon: 'success',
+            duration: 2000
+        });
+
+        // 清空表单
+        withdrawalAddress.value = '';
+        withdrawalAmount.value = '';
+
+    } catch (error) {
+        uni.hideLoading();
+        console.error('withdrawal failed:', error);
+        
+        uni.showToast({
+            title: 'withdrawal failed, please try again later',
+            icon: 'none',
+            duration: 2000
+        });
+    }
 };
 
 // CONVERT 相关方法
 const selectConvertCurrency = (currency) => {
     selectedConvertCurrency.value = currency;
-    console.log('选择转换货币:', currency);
+    console.log('select convert currency:', currency);
 };
 
 const setMaxConvertAmount = () => {
     // 这里应该设置用户的最大可用USDC余额
     convertFromAmount.value = '500.00'; // 示例值
-    console.log('设置最大转换金额');
+    console.log('set max convert amount');
 };
 
 const onConvertAmountChange = () => {
     // 当输入金额变化时，自动计算转换结果
-    console.log('转换金额变化:', convertFromAmount.value);
+    console.log('convert amount changed:', convertFromAmount.value);
 };
 
 const handleConvert = () => {
     if (!convertFromAmount.value || parseFloat(convertFromAmount.value) <= 0) {
         uni.showToast({
-            title: '请输入有效的转换金额',
+            title: 'please enter a valid conversion amount',
             icon: 'none',
             duration: 2000
         });
         return;
     }
     
-    console.log('转换信息:', {
+    console.log('conversion information:', {
         fromCurrency: 'USDC',
         toCurrency: 'USDT',
         amount: convertFromAmount.value
     });
     
     uni.showToast({
-        title: '转换申请已提交',
+        title: 'conversion application submitted successfully',
         icon: 'success',
         duration: 2000
     });
 };
 
-// 其他现有方法...
+// 跳转到记录页面的方法
 const goToTransactionRecord = () => {
-    console.log('跳转到交易记录页面');
+    console.log('go to transaction record page');
     uni.navigateTo({
-        url: '/pages/record/index'
+        url: '/pages/record/index?source=account&type=transaction'
     });
 };
 
 const goToRevenueRecord = () => {
-    console.log('跳转到收益记录页面');
+    console.log('go to revenue record page');
     uni.navigateTo({
-        url: '/pages/record/index'
+        url: '/pages/record/index?source=account&type=revenue'
     });
 };
 
-onMounted(() => {
+// 获取充值地址
+const fetchRechargeAddresses = async () => {
+    try {
+        const data = await api.transaction.getRechargeAddress();
+        
+        if (data) {
+            rechargeAddresses.value = data;
+            console.log('Recharge addresses loaded:', data);
+        }
+        
+    } catch (error) {
+        console.error('Failed to get recharge addresses:', error);
+        apiUtils.showError('Failed to load recharge addresses');
+    }
+};
+
+// 获取当前选择币种的充值地址
+const getCurrentRechargeAddress = () => {
+    if (!rechargeAddresses.value) return 'Loading...';
+    
+    // 根据选择的币种返回对应地址
+    switch (selectedCurrency.value) {
+        case 'btc':
+            return rechargeAddresses.value.btc || 'Address not available';
+        case 'eth':
+            return rechargeAddresses.value.erc || 'Address not available';
+        case 'usdt':
+            return rechargeAddresses.value.usdt || 'Address not available';
+        case 'usdc':
+            return rechargeAddresses.value.usdc || 'Address not available';
+        default:
+            return 'Address not available';
+    }
+};
+
+// 复制充值地址
+const copyRechargeAddress = () => {
+    const address = getCurrentRechargeAddress();
+    
+    if (address === 'Loading...' || address === 'Address not available') {
+        apiUtils.showError('Address not available');
+        return;
+    }
+    
+    uni.setClipboardData({
+        data: address,
+        success: () => {
+            apiUtils.showSuccess('Address copied to clipboard');
+        },
+        fail: () => {
+            apiUtils.showError('Failed to copy address');
+        }
+    });
+};
+
+// 添加新的计算方法
+// 获取当前货币对应的图标路径
+const getCurrentCurrencyIcon = (currency) => {
+    const iconMap = {
+        'btc': '/static/btc.jpg',
+        'eth': '/static/eth.jpg', 
+        'usdt': '/static/usdt.jpg',
+        'usdc': '/static/usdc.jpg' // 使用usdc图片替代ltc
+    };
+    return iconMap[currency] || '/static/usdt.jpg';
+};
+
+// 页面加载时获取系统信息和用户数据
+onMounted(async () => {
     try {
         const systemInfo = uni.getSystemInfoSync();
         statusBarHeight = systemInfo.statusBarHeight || 0;
     } catch (e) {
-        console.error('获取状态栏高度失败', e);
+        console.error('get status bar height failed:', e);
     }
+    
+    // 获取用户账户信息和充值地址
+    await Promise.all([
+        fetchUserInfo(),
+        fetchRechargeAddresses()
+    ]);
 });
 </script>
 
@@ -1269,5 +1429,78 @@ onMounted(() => {
     color: #ffffff; // 白色文字
     font-weight: 600; // 字体加粗
     letter-spacing: 2rpx; // 字母间距2rpx
+}
+
+/* 加密货币图标样式 */
+.crypto-icon {
+    width: 24px;
+    height: 24px;
+    display: block;
+}
+
+.crypto-icon-small {
+    width: 20px;
+    height: 20px;
+    display: block;
+}
+
+/* 充值地址区域 */
+.address-section {
+    display: flex;
+    flex-direction: column;
+    gap: 15rpx;
+    margin: 20rpx 0;
+}
+
+/* 地址标签 */
+.address-label {
+    font-size: 28rpx;
+    color: #333333;
+    font-weight: 500;
+}
+
+/* 地址显示容器 */
+.address-display {
+    display: flex;
+    align-items: center;
+    background-color: #f8f9fa;
+    border: 1rpx solid #e0e0e0;
+    border-radius: 10rpx;
+    padding: 20rpx;
+    gap: 15rpx;
+}
+
+/* 地址文字 */
+.address-text {
+    flex: 1;
+    font-size: 24rpx;
+    color: #333333;
+    font-family: 'Courier New', monospace;
+    word-break: break-all;
+    line-height: 1.4;
+}
+
+/* 复制按钮 */
+.copy-button {
+    background-color: #007aff;
+    border-radius: 8rpx;
+    padding: 12rpx 20rpx;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    
+    &:hover {
+        background-color: #0056b3;
+    }
+    
+    &:active {
+        transform: scale(0.95);
+    }
+}
+
+/* 复制按钮文字 */
+.copy-text {
+    font-size: 24rpx;
+    color: #ffffff;
+    font-weight: 500;
 }
 </style>

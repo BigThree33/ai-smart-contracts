@@ -13,20 +13,12 @@
         <view class="content-container">
             <!-- 客服按钮 -->
             <view class="customer-service-box">
-                <view class="service-row" @click="toggleCustomerService">
+                <view class="service-row" @click="openCustomerService">
                     <view class="service-left">
                         <uni-icons type="headphones" size="20" color="#3c8dbc"></uni-icons>
                         <text class="service-text">Online Customer Service</text>
                     </view>
-                    <text class="expand-arrow" :class="{'rotated': showSubService}">></text>
-                </view>
-
-                <!-- 展开的子选项 -->
-                <view v-if="showSubService" class="sub-service-row" @click="navigateToChat">
-                    <view class="service-left">
-                        <uni-icons type="chat" size="20" color="#3c8dbc"></uni-icons>
-                        <text class="service-text">Contact Support</text>
-                    </view>
+                    <uni-icons type="right" size="16" color="#999999"></uni-icons>
                 </view>
             </view>
 
@@ -197,6 +189,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { api, apiUtils } from '@/utils/api.js';
 
 // 获取状态栏高度
 let statusBarHeight = 0;
@@ -204,46 +197,106 @@ let statusBarHeight = 0;
 // 控制客服子选项显示
 const showSubService = ref(false);
 
-// 切换客服子选项显示
+// 点击在线客服 - 获取kefu地址并跳转
+const openCustomerService = async () => {
+    try {
+        // 显示加载中
+        uni.showLoading({
+            title: 'connecting to customer service...'
+        });
+
+        console.log('getting customer service address...');
+        
+        // 调用getinfo接口获取kefu参数
+        const response = await api.user.getInfo();
+        
+        console.log('getinfo response:', response);
+        console.log('kefu value:', response.kefu);
+        console.log('response type:', typeof response);
+        console.log('response keys:', Object.keys(response || {}));
+        
+        uni.hideLoading();
+
+        // 修改判断条件：直接检查response.kefu
+        if (response && response.kefu) {
+            const kefuUrl = response.kefu;
+            console.log('customer service address:', kefuUrl);
+            
+            // 跳转到客服地址
+            await openExternalLink(kefuUrl);
+        } else {
+            console.log('kefu not found in response:', response);
+            throw new Error('get customer service address failed');
+        }
+    } catch (error) {
+        uni.hideLoading();
+        console.error('get customer service address failed:', error);
+        
+        // 显示错误提示
+        uni.showModal({
+            title: 'tip',
+            content: 'cannot connect to customer service, please try again later',
+            showCancel: false,
+            confirmText: 'ok'
+        });
+    }
+};
+
+// 打开外部链接
+const openExternalLink = (url) => {
+    return new Promise((resolve, reject) => {
+        try {
+            console.log('prepare to open link:', url);
+            
+            // 在小程序中打开外部链接
+            // #ifdef MP-WEIXIN
+            uni.navigateTo({
+                url: `/pages/webview/webview?url=${encodeURIComponent(url)}`,
+                success: () => {
+                    console.log('jump to webview successfully');
+                    resolve();
+                },
+                fail: (error) => {
+                    console.error('jump to webview failed:', error);
+                    reject(error);
+                }
+            });
+            // #endif
+            
+            // 在APP中打开外部链接
+            // #ifdef APP-PLUS
+            plus.runtime.openURL(url);
+            resolve();
+            // #endif
+            
+            // 在H5中打开外部链接
+            // #ifdef H5
+            window.open(url, '_blank');
+            resolve();
+            // #endif
+            
+        } catch (error) {
+            console.error('open external link failed:', error);
+            reject(error);
+        }
+    });
+};
+
+// 原有的切换客服子选项显示（如果还需要的话可以保留）
 const toggleCustomerService = () => {
     showSubService.value = !showSubService.value;
 };
 
-// 跳转到客服聊天页面
+// 跳转到客服聊天页面（备用方法）
 const navigateToChat = () => {
-    // 这里可以添加实际的跳转逻辑
     uni.showToast({
-        title: '即将跳转到客服页面...',
+        title: 'jumping to customer service page...',
         icon: 'none',
         duration: 1500
     });
     
-    // 后续可以添加实际的跳转代码
     uni.navigateTo({
         url: '/pages/borrow/index'
-    });
-};
-
-// 原有的联系客服方法（如果还需要的话可以保留）
-const contactCustomerService = () => {
-    uni.showModal({
-        title: '客服联系',
-        content: '您确定要联系在线客服吗？',
-        success: function (res) {
-            if (res.confirm) {
-                uni.showToast({
-                    title: '正在连接客服...',
-                    icon: 'none',
-                    duration: 2000
-                });
-
-                setTimeout(() => {
-                    uni.navigateTo({
-                        url: '/pages/chat/index'
-                    });
-                }, 1000);
-            }
-        }
     });
 };
 
@@ -253,7 +306,7 @@ onMounted(() => {
         const systemInfo = uni.getSystemInfoSync();
         statusBarHeight = systemInfo.statusBarHeight || 0;
     } catch (e) {
-        console.error('获取状态栏高度失败', e);
+        console.error('get status bar height failed:', e);
     }
 });
 </script>

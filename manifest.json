@@ -1,6 +1,6 @@
 {
-    "name" : "FangZhan",
-    "appid" : "__UNI__F279545",
+    "name" : "AI Smart Contracts",
+    "appid" : "__UNI__0AC19E7",
     "description" : "",
     "versionName" : "1.0.0",
     "versionCode" : "100",
@@ -43,6 +43,27 @@
             "ios" : {},
             /* ios打包配置 */
             "sdkConfigs" : {}
+        },
+        "network": {
+            "request": {
+                "timeout": 60000
+            }
+        }
+    },
+    "h5": {
+        "devServer": {
+            "proxy": {
+                "/api-proxy": {
+                    "target": "http://new.souhlawfirm.com",
+                    "changeOrigin": true,
+                    "pathRewrite": {
+                        "^/api-proxy": ""
+                    }
+                }
+            }
+        },
+        "router": {
+            "mode": "hash"
         }
     },
     /* SDK配置 */

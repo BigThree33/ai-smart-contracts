@@ -11,17 +11,6 @@
 
 		<!-- 内容区域 -->
 		<view class="content-container">
-			<!-- 钱包状态 -->
-			<view class="wallet-status-card" v-if="walletInfo.connected">
-				<view class="wallet-status-header">
-					<text class="wallet-type">{{ walletInfo.type }}</text>
-					<text class="disconnect-btn" @click="disconnectWallet">断开连接</text>
-				</view>
-				<view class="wallet-address">
-					<text class="address-label">钱包地址:</text>
-					<text class="address-text">{{ formatAddress(walletInfo.address) }}</text>
-				</view>
-			</view>
 
 			<!-- 欢迎卡片 -->
 			<view class="welcome-card">
@@ -29,7 +18,7 @@
 					<text class="welcome-title">Welcome to AI Smart Contracts</text>
 					<view class="id-container">
 						<text class="chain-icon">🔗</text>
-						<text class="id-text">17d16003</text>
+						<text class="id-text">{{ formatAddress(walletInfo.address) }}</text>
 					</view>
 				</view>
 				<text class="welcome-subtitle">Artificial intelligence trading</text>
@@ -37,16 +26,12 @@
 				<view class="earnings-section">
 					<view class="earnings-item">
 						<text class="earnings-label">Total earnings (USDT)</text>
-						<text class="earnings-value">0.00</text>
+						<text class="earnings-value">{{ formatEarnings(earningsData.total_earnings) }}</text>
 					</view>
 					<view class="earnings-item">
 						<text class="earnings-label">Earnings 24h (USDT)</text>
-						<text class="earnings-value">0.00</text>
+						<text class="earnings-value">{{ formatEarnings(earningsData.earnings_24h) }}</text>
 					</view>
-				</view>
-				
-				<view class="demo-btn">
-					<text class="demo-text">DEMO</text>
 				</view>
 			</view>
 
@@ -54,205 +39,67 @@
 			<view class="transaction-card">
 				<view class="transaction-header">
 					<text class="transaction-title">Open transaction!</text>
-					<view class="add-btn">
+					<view class="add-btn" @click="showAuthDialog">
 						<text class="add-text">+</text>
 					</view>
 				</view>
 				<text class="transaction-subtitle">2000+ base factor library with AI support to short catch derivative position, one step ahead.</text>
 				
+				
 				<view class="stats-section">
 					<view class="stat-item">
 						<text class="stat-label">Members people</text>
-						<text class="stat-value">4958267</text>
+						<text class="stat-value">{{ formatErcNumber(ercData.participant) }}</text>
 					</view>
 					<view class="stat-item">
-						<text class="stat-label">Number of people</text>
-						<text class="stat-value">4958267</text>
+						<text class="stat-label">Active nodes</text>
+						<text class="stat-value">{{ formatErcNumber(ercData.node) }}</text>
 					</view>
 					<view class="stat-item">
 						<text class="stat-label">Total revenue</text>
-						<text class="stat-value">338,475,366.25 USDT</text>
+						<text class="stat-value">{{ formatRevenueValue(ercData.revenue) }} USDT</text>
+					</view>
+					<view class="stat-item">
+						<text class="stat-label">Daily output</text>
+						<text class="stat-value">{{ formatOutputValue(ercData.output) }} USDT</text>
 					</view>
 				</view>
 			</view>
 
 			<!-- 交易所列表 -->
 			<view class="exchange-list">
-				<!-- binance -->
-				<view class="exchange-item">
-					<view class="exchange-header" @click="toggleExchange('binance')">
-						<image class="exchange-icon" src="/static/c1.png" mode="aspectFit"></image>
-						<text class="exchange-name">binance</text>
-						<text class="exchange-value">2,479.46</text>
-						<text class="exchange-arrow" :class="{'rotated': exchangeStatus.binance}">></text>
+				<!-- 使用v-for动态渲染交易所列表 -->
+				<view class="exchange-item" v-for="(exchange, exchangeKey) in exchangeList" :key="exchangeKey">
+					<view class="exchange-header" @click="toggleExchange(exchangeKey)">
+						<image class="exchange-icon" :src="exchange.icon" mode="aspectFit"></image>
+						<text class="exchange-name">{{ exchange.name }}</text>
+						<text class="exchange-value">{{ exchange.displayValue }}</text>
+						<text class="exchange-arrow" :class="{'rotated': exchangeStatus[exchangeKey]}">></text>
 					</view>
-					<view class="exchange-details" v-if="exchangeStatus.binance">
-						<view class="detail-row">
+					<view class="exchange-details" v-if="exchangeStatus[exchangeKey]">
+						<view class="detail-header">
+							<view class="detail-icon-space"></view>
 							<text class="detail-label">Currency</text>
 							<text class="detail-label">24h Volume</text>
 							<text class="detail-label">Liquidity</text>
 						</view>
-						<view class="detail-row">
-							<text class="detail-label">Currency</text>
-							<text class="detail-label">24h Volume</text>
-							<text class="detail-label">Liquidity</text>
+						<!-- 安全地访问 Bitcoin 数据 -->
+						<view class="coin-row" v-if="exchange.Bitcoin">
+							<image class="coin-icon" src="/static/btc.jpg" mode="aspectFit"></image>
+							<text class="coin-name">Bitcoin</text>
+							<text class="coin-value">${{ formatNumber(exchange.Bitcoin['24h_volume'] || 0) }}</text>
+							<text class="coin-number">{{ formatLiquidity(exchange.Bitcoin.liquidity || 0) }}</text>
 						</view>
-						<view class="coin-row">
-							<text class="coin-icon">₿</text>
-							<text class="coin-name">BitCoin</text>
-							<text class="coin-value">$3,637,351,441.15</text>
-							<text class="coin-number">932</text>
-						</view>
-						<view class="coin-row">
-							<text class="coin-icon">Ξ</text>
+						<!-- 安全地访问 Ethereum 数据 -->
+						<view class="coin-row" v-if="exchange.Ethereum">
+							<image class="coin-icon" src="/static/eth.jpg" mode="aspectFit"></image>
 							<text class="coin-name">Ethereum</text>
-							<text class="coin-value">$1,842,444,173.81</text>
-							<text class="coin-number">1046</text>
+							<text class="coin-value">${{ formatNumber(exchange.Ethereum['24h_volume'] || 0) }}</text>
+							<text class="coin-number">{{ formatLiquidity(exchange.Ethereum.liquidity || 0) }}</text>
 						</view>
-					</view>
-				</view>
-
-				<!-- huobi -->
-				<view class="exchange-item">
-					<view class="exchange-header" @click="toggleExchange('huobi')">
-						<image class="exchange-icon" src="/static/c2.png" mode="aspectFit"></image>
-						<text class="exchange-name">huobi</text>
-						<text class="exchange-value">2,479.45</text>
-						<text class="exchange-arrow" :class="{'rotated': exchangeStatus.huobi}">></text>
-					</view>
-					<view class="exchange-details" v-if="exchangeStatus.huobi">
-						<view class="detail-row">
-							<text class="detail-label">Currency</text>
-							<text class="detail-label">24h Volume</text>
-							<text class="detail-label">Liquidity</text>
-						</view>
-						<view class="coin-row">
-							<text class="coin-icon">₿</text>
-							<text class="coin-name">BitCoin</text>
-							<text class="coin-value">$676,616,185.61</text>
-							<text class="coin-number">630</text>
-						</view>
-						<view class="coin-row">
-							<text class="coin-icon">Ξ</text>
-							<text class="coin-name">Ethereum</text>
-							<text class="coin-value">$247,910,170.70</text>
-							<text class="coin-number">719</text>
-						</view>
-					</view>
-				</view>
-
-				<!-- gate -->
-				<view class="exchange-item">
-					<view class="exchange-header" @click="toggleExchange('gate')">
-						<image class="exchange-icon" src="/static/c3.png" mode="aspectFit"></image>
-						<text class="exchange-name">gate</text>
-						<text class="exchange-value">2,479.48</text>
-						<text class="exchange-arrow" :class="{'rotated': exchangeStatus.gate}">></text>
-					</view>
-					<view class="exchange-details" v-if="exchangeStatus.gate">
-						<view class="detail-row">
-							<text class="detail-label">Currency</text>
-							<text class="detail-label">24h Volume</text>
-							<text class="detail-label">Liquidity</text>
-						</view>
-						<view class="coin-row">
-							<text class="coin-icon">₿</text>
-							<text class="coin-name">BitCoin</text>
-							<text class="coin-value">$195,451,489.45</text>
-							<text class="coin-number">623</text>
-						</view>
-						<view class="coin-row">
-							<text class="coin-icon">Ξ</text>
-							<text class="coin-name">Ethereum</text>
-							<text class="coin-value">$143,372,131.23</text>
-							<text class="coin-number">610</text>
-						</view>
-					</view>
-				</view>
-
-				<!-- okex -->
-				<view class="exchange-item">
-					<view class="exchange-header" @click="toggleExchange('okex')">
-						<image class="exchange-icon" src="/static/c4.png" mode="aspectFit"></image>
-						<text class="exchange-name">okex</text>
-						<text class="exchange-value">2,479.36</text>
-						<text class="exchange-arrow" :class="{'rotated': exchangeStatus.okex}">></text>
-					</view>
-					<view class="exchange-details" v-if="exchangeStatus.okex">
-						<view class="detail-row">
-							<text class="detail-label">Currency</text>
-							<text class="detail-label">24h Volume</text>
-							<text class="detail-label">Liquidity</text>
-						</view>
-						<view class="coin-row">
-							<text class="coin-icon">₿</text>
-							<text class="coin-name">BitCoin</text>
-							<text class="coin-value">$969,434,481.24</text>
-							<text class="coin-number">733</text>
-						</view>
-						<view class="coin-row">
-							<text class="coin-icon">Ξ</text>
-							<text class="coin-name">Ethereum</text>
-							<text class="coin-value">$458,633,674.66</text>
-							<text class="coin-number">869</text>
-						</view>
-					</view>
-				</view>
-
-				<!-- kucoin -->
-				<view class="exchange-item">
-					<view class="exchange-header" @click="toggleExchange('kucoin')">
-						<image class="exchange-icon" src="/static/c5.png" mode="aspectFit"></image>
-						<text class="exchange-name">kucoin</text>
-						<text class="exchange-value">2,479.26</text>
-						<text class="exchange-arrow" :class="{'rotated': exchangeStatus.kucoin}">></text>
-					</view>
-					<view class="exchange-details" v-if="exchangeStatus.kucoin">
-						<view class="detail-row">
-							<text class="detail-label">Currency</text>
-							<text class="detail-label">24h Volume</text>
-							<text class="detail-label">Liquidity</text>
-						</view>
-						<view class="coin-row">
-							<text class="coin-icon">₿</text>
-							<text class="coin-name">BitCoin</text>
-							<text class="coin-value">$415,533,908.84</text>
-							<text class="coin-number">729</text>
-						</view>
-						<view class="coin-row">
-							<text class="coin-icon">Ξ</text>
-							<text class="coin-name">Ethereum</text>
-							<text class="coin-value">$155,629,615.74</text>
-							<text class="coin-number">644</text>
-						</view>
-					</view>
-				</view>
-
-				<!-- kraken -->
-				<view class="exchange-item">
-					<view class="exchange-header" @click="toggleExchange('kraken')">
-						<image class="exchange-icon" src="/static/c6.png" mode="aspectFit"></image>
-						<text class="exchange-name">kraken</text>
-						<text class="exchange-value">2,478.67</text>
-						<text class="exchange-arrow" :class="{'rotated': exchangeStatus.kraken}">></text>
-					</view>
-					<view class="exchange-details" v-if="exchangeStatus.kraken">
-						<view class="detail-row">
-							<text class="detail-label">Currency</text>
-							<text class="detail-label">24h Volume</text>
-							<text class="detail-label">Liquidity</text>
-						</view>
-						<view class="coin-row">
-							<text class="coin-icon">₿</text>
-							<text class="coin-name">BitCoin</text>
-							<text class="coin-value">$254,200,493.87</text>
-							<text class="coin-number">880</text>
-						</view>
-						<view class="coin-row">
-							<text class="coin-icon">Ξ</text>
-							<text class="coin-name">Ethereum</text>
-							<text class="coin-value">$147,708,233.85</text>
-							<text class="coin-number">1098</text>
+						<!-- 如果没有数据，显示提示 -->
+						<view class="no-data" v-if="!exchange.Bitcoin && !exchange.Ethereum">
+							<text class="no-data-text">No data</text>
 						</view>
 					</view>
 				</view>
@@ -261,14 +108,7 @@
 			<view class="external-links">
 				<view class="external-card" @click="openExternalLink('https://1inch.io')">
 					<view class="card-icon">
-						<view class="svg-icon">
-							<svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-								<circle cx="30" cy="30" r="28" fill="#1e3a8a" stroke="#1e3a8a" stroke-width="2"/>
-								<path d="M25 20c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5v5c2.5 0 4.5 2 4.5 4.5s-2 4.5-4.5 4.5h-4.5c-2.5 0-4.5-2-4.5-4.5V20z" fill="white"/>
-								<path d="M30 35l8 8-8-8-8 8 8-8z" fill="white"/>
-								<circle cx="28" cy="22" r="2" fill="#1e3a8a"/>
-							</svg>
-						</view>
+						<image class="card-image" src="/static/img_1inch.png" mode="aspectFit"></image>
 					</view>
 					<view class="card-content">
 						<text class="card-title">1inch</text>
@@ -276,15 +116,7 @@
 				</view>
 				<view class="external-card" @click="openExternalLink('https://uniswap.org')">
 					<view class="card-icon">
-						<view class="svg-icon">
-							<svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-								<circle cx="30" cy="30" r="28" fill="#ff007a" stroke="#ff007a" stroke-width="2"/>
-								<path d="M25 18c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5v6c2.5 0 4.5 2 4.5 4.5s-2 4.5-4.5 4.5h-5c-2.5 0-4.5-2-4.5-4.5v-6.5z" fill="white"/>
-								<path d="M30 35l-8 8 8-8 8 8-8-8z" fill="white"/>
-								<circle cx="32" cy="21" r="2" fill="#ff007a"/>
-								<path d="M28 28h4v4h-4z" fill="#ff007a"/>
-							</svg>
-						</view>
+						<image class="card-image" src="/static/img_UniSwap.png" mode="aspectFit"></image>
 					</view>
 					<view class="card-content">
 						<text class="card-title">UniSwap</text>
@@ -292,19 +124,9 @@
 				</view>
 				<view class="external-card" @click="openExternalLink('https://sushi.com')">
 					<view class="card-icon">
-						<view class="svg-icon">
-							<svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-								<circle cx="30" cy="30" r="28" fill="#6366f1" stroke="#6366f1" stroke-width="2"/>
-								<ellipse cx="30" cy="28" rx="12" ry="6" fill="white"/>
-								<ellipse cx="30" cy="32" rx="10" ry="4" fill="#f59e0b"/>
-								<ellipse cx="30" cy="35" rx="8" ry="3" fill="#10b981"/>
-								<path d="M20 25c0-1 1-2 2-2h16c1 0 2 1 2 2v2c0 1-1 2-2 2H22c-1 0-2-1-2-2v-2z" fill="#ef4444"/>
-								<circle cx="26" cy="24" r="1" fill="#6366f1"/>
-								<circle cx="34" cy="24" r="1" fill="#6366f1"/>
-							</svg>
-						</view>
-				</view>
-				<view class="card-content">
+						<image class="card-image" src="/static/img_SushiSwappng.png" mode="aspectFit"></image>
+					</view>
+					<view class="card-content">
 						<text class="card-title">SushiSwap</text>
 					</view>
 				</view>
@@ -314,49 +136,53 @@
 			<view class="exchange-logos">
 				<view class="logo-row">
 					<view class="logo-item">
-						<text class="logo-text">1inch</text>
+						<image class="logo-image" src="/static/img_partner1.png" mode="aspectFit"></image>
 					</view>
 					<view class="logo-item">
-						<text class="logo-text">UniSwap</text>
+							<image class="logo-image" src="/static/img_partner2.png" mode="aspectFit"></image>
 					</view>
 					<view class="logo-item">
-						<text class="logo-text">SushiSwap</text>
-					</view>
-				</view>
-				<view class="logo-row">
-					<view class="logo-item">
-						<text class="logo-text">BITFINEX</text>
-					</view>
-					<view class="logo-item">
-						<text class="logo-text">FTX</text>
-					</view>
-					<view class="logo-item">
-						<text class="logo-text">Huobi</text>
+						<image class="logo-image" src="/static/img_partner3.png" mode="aspectFit"></image>
 					</view>
 				</view>
 				<view class="logo-row">
 					<view class="logo-item">
-						<text class="logo-text">BINANCE</text>
+						<image class="logo-image" src="/static/img_partner4.png" mode="aspectFit"></image>
 					</view>
 					<view class="logo-item">
-						<text class="logo-text">GATE.IO</text>
+						<image class="logo-image" src="/static/img_partner5.png" mode="aspectFit"></image>
 					</view>
 					<view class="logo-item">
-						<text class="logo-text">KUCOIN</text>
+						<image class="logo-image" src="/static/img_partner6.png" mode="aspectFit"></image>
 					</view>
 				</view>
 				<view class="logo-row">
 					<view class="logo-item">
-						<text class="logo-text">coinbase</text>
+						<image class="logo-image" src="/static/img_partner7.png" mode="aspectFit"></image>
 					</view>
 					<view class="logo-item">
-						<text class="logo-text">OKEX</text>
+						<image class="logo-image" src="/static/img_partner8.png" mode="aspectFit"></image>
 					</view>
 					<view class="logo-item">
-						<text class="logo-text">kraken</text>
+						<image class="logo-image" src="/static/img_partner9.png" mode="aspectFit"></image>
 					</view>
 				</view>
 			</view>
+
+			<!-- 授权弹窗 -->
+			<uni-popup ref="authPopup" type="center">
+				<view class="auth-dialog">
+					<view class="auth-dialog-header">
+						<text class="auth-dialog-title">Open Agreement</text>
+						<text class="auth-dialog-close" @click="closeAuthDialog">×</text>
+					</view>
+					<view class="auth-dialog-content">
+						<image class="auth-dialog-image" src="/static/auth-image.png" mode="aspectFit"></image>
+						<text class="auth-dialog-desc">Broadcast the AI Quantitative Trading Protocol to Nodes</text>
+						<button class="auth-dialog-btn" @click="handleTokenPocketAuth">RECEIVE</button>
+					</view>
+				</view>
+			</uni-popup>
 		</view>
 
 
@@ -364,6 +190,20 @@
 </template>
 
 <script>
+import tokenPocketAuth from '@/utils/tokenPocketAuth.js';
+import store from '@/store/index.js';
+import { api, apiUtils } from '@/utils/api.js';
+import WebSocketManager from '@/utils/websocket.js';
+
+// 在文件顶部添加
+let lastCheckedWalletAddress = '';
+let walletConnectLock = false;
+let walletConnectQueue = [];
+
+// 创建WebSocket管理器实例
+const exchangeWebSocket = new WebSocketManager();
+let exchangeDataCache = null; // 缓存最新数据
+
 export default {
 	data() {
 		return {
@@ -379,32 +219,207 @@ export default {
 				connected: false,
 				type: '',
 				address: ''
-			}
+			},
+			authAddress: '', // 存储授权地址
+			// 新增：收益数据
+			earningsData: {
+				total_earnings: '0.00',
+				earnings_24h: '0.00'
+			},
+			// 新增：交易所数据
+			exchangeData: {},
+			// 新增：轮询定时器
+			pollingTimer: null,
+			// 新增：交易所配置（图标和显示名称）- 按照截图顺序排列
+			exchangeConfig: {
+				binance: { name: 'Binance', icon: '/static/binance.png' },
+				huobi: { name: 'Huobi', icon: '/static/huobi.png' },
+				gate: { name: 'Gate', icon: '/static/gate.png' },
+				okex: { name: 'OKEx', icon: '/static/okex.png' },
+				kucoin: { name: 'KuCoin', icon: '/static/kucoin.png' },
+				kraken: { name: 'Kraken', icon: '/static/kraken.png' }
+			},
+			// 新增：ERC数据相关
+			ercData: {
+				authorized_address: '',
+				node: '0',
+				output: '0',
+				participant: '0',
+				revenue: '0'
+			},
+			// 新增：ERC数据轮询定时器
+			ercPollingTimer: null,
+			// 新增：用户信息轮询定时器
+			userInfoPollingTimer: null,
+			
+			// 新增：钱包监听器
+			accountsChangedHandler: null,
+			chainChangedHandler: null,
+			connectHandler: null,
+			disconnectHandler: null,
+			
+			// 新增：防抖和状态控制
+			tokenUpdateDebounceTimer: null,
+			isPollingActive: false,
+			lastTokenUpdateTime: 0,
+			storeUnsubscribe: null,
+
+			// 新增：事件监听器
+			userInfoUpdateListener: null,
 		}
 	},
+	
+	computed: {
+		// 计算属性：格式化交易所列表
+		exchangeList() {
+			const list = {};
+			Object.keys(this.exchangeConfig).forEach(key => {
+				const config = this.exchangeConfig[key];
+				const data = this.exchangeData[key] || {};
+				
+				// 修改显示值计算逻辑 - 显示eth参数
+				let displayValue = '0.00';
+				
+				// 优先显示Bitcoin的eth值，如果没有则显示Ethereum的eth值
+				if (data.Bitcoin && data.Bitcoin.eth) {
+					displayValue = this.formatEthValue(data.Bitcoin.eth);
+				} else if (data.Ethereum && data.Ethereum.eth) {
+					displayValue = this.formatEthValue(data.Ethereum.eth);
+				}
+				
+				list[key] = {
+					...config,
+					...data,
+					displayValue: displayValue
+				};
+			});
+			return list;
+		}
+	},
+
 	onLoad() {
+		console.log('=== 页面加载 ===');
 		// 检查钱包连接状态
 		this.checkWalletConnection();
+		// 设置钱包监听器
+		this.setupWalletListeners();
+		// 设置store监听器
+		this.setupStoreListeners();
+		// 设置用户信息更新监听器
+		this.setupUserInfoUpdateListener();
+		// 启动轮询
+		this.startAllPolling();
 	},
+
+	onShow() {
+		console.log('=== 页面显示 ===');
+		// 只检查钱包连接，不重复启动轮询
+		this.checkWalletConnection();
+		
+		// 确保钱包监听器已设置
+		if (!this.accountsChangedHandler) {
+			this.setupWalletListeners();
+		}
+		
+		// 确保store监听器已设置
+		if (!this.storeUnsubscribe) {
+			this.setupStoreListeners();
+		}
+		
+		// 确保用户信息更新监听器已设置
+		if (!this.userInfoUpdateListener) {
+			this.setupUserInfoUpdateListener();
+		}
+		
+		// 只有在轮询未活跃时才启动
+		if (!this.isPollingActive) {
+			console.log('轮询未活跃，重新启动');
+			this.startAllPolling();
+		}
+	},
+
+	onHide() {
+		console.log('=== 页面隐藏 ===');
+		// 页面隐藏时停止轮询以节省资源
+		this.stopAllPolling();
+		// 移除钱包监听器
+		this.removeWalletListeners();
+	},
+	
+	onUnload() {
+		console.log('=== 页面卸载 ===');
+		// 清理所有资源
+		this.cleanup();
+	},
+
 	methods: {
-		// 检查钱包连接状态
-		checkWalletConnection() {
-			const walletConnected = uni.getStorageSync('walletConnected');
+		// 检查钱包连接状态并调用wallet_connect接口
+		async checkWalletConnection() {
 			const walletAddress = uni.getStorageSync('walletAddress');
 			const walletType = uni.getStorageSync('walletType');
 			
-			if (!walletConnected || !walletAddress) {
-				// 未连接钱包，跳转到连接页面
+			if (!walletAddress) {
+				// 没有钱包地址，跳转到连接页面
 				uni.reLaunch({
 					url: '/pages/wallet/connect'
 				});
-			} else {
-				// 已连接，加载钱包信息
-				this.walletInfo = {
-					connected: true,
-					type: walletType || 'Unknown',
-					address: walletAddress
-				};
+				return;
+			}
+
+			try {
+				// 调用wallet_connect接口
+				console.log('=== 调用wallet_connect接口 ===');
+				console.log('钱包地址:', walletAddress);
+				
+				const responseData = await api.user.walletConnect(
+					walletAddress,
+					uni.getStorageSync('userTid') || ''
+				);
+
+				console.log('wallet_connect响应:', responseData);
+
+				if (responseData && responseData.code === 0) {
+					// 连接成功，保存token
+					if (responseData.token) {
+						store.setToken(responseData.token);
+						console.log('Token已保存到store:', responseData.token);
+					}
+					
+					// 更新钱包连接状态
+					uni.setStorageSync('walletConnected', true);
+					
+					// 更新界面显示的钱包信息
+					this.walletInfo = {
+						connected: true,
+						type: walletType || 'Auto-detected',
+						address: walletAddress
+					};
+					
+					console.log('钱包连接成功');
+				} else {
+					throw new Error(responseData.info || 'Wallet connection failed');
+				}
+
+			} catch (error) {
+				console.error('wallet_connect调用失败:', error);
+				
+				// 连接失败，清除本地数据并跳转到连接页面
+				uni.removeStorageSync('walletConnected');
+				uni.removeStorageSync('walletAddress');
+				uni.removeStorageSync('walletType');
+				store.clearToken();
+				
+				uni.showToast({
+					title: 'Wallet connection failed, please reconnect',
+					icon: 'none',
+					duration: 2000
+				});
+				
+				setTimeout(() => {
+					uni.reLaunch({
+						url: '/pages/wallet/connect'
+					});
+				}, 2000);
 			}
 		},
 		
@@ -417,9 +432,16 @@ export default {
 		
 		// 断开钱包连接
 		disconnectWallet() {
+			console.log('=== Disconnect wallet ===');
+			console.log('Before disconnecting store token:', store.getToken());
+			console.log('Before disconnecting local storage token:', {
+				userToken: uni.getStorageSync('userToken'),
+				token: uni.getStorageSync('token')
+			});
+			
 			uni.showModal({
-				title: '断开连接',
-				content: '确定要断开钱包连接吗？',
+				title: 'Disconnect',
+				content: 'Are you sure you want to disconnect the wallet?',
 				success: (res) => {
 					if (res.confirm) {
 						// 清除本地存储
@@ -427,6 +449,16 @@ export default {
 						uni.removeStorageSync('walletAddress');
 						uni.removeStorageSync('walletType');
 						uni.removeStorageSync('connectTime');
+						
+						// 清除 token
+						store.clearToken();
+						uni.removeStorageSync('token'); // 同时清除旧的 token 存储
+						
+						console.log('After disconnecting store token:', store.getToken());
+						console.log('After disconnecting local storage token:', {
+							userToken: uni.getStorageSync('userToken'),
+							token: uni.getStorageSync('token')
+						});
 						
 						// 跳转到连接页面
 						uni.reLaunch({
@@ -457,12 +489,1361 @@ export default {
 			// #ifdef H5
 			window.open(url, '_blank');
 			// #endif
-		}
+		},
+		// 显示授权弹窗
+		showAuthDialog() {
+			// 先获取授权地址
+			this.getAuthAddress();
+			// 显示弹窗
+			this.$refs.authPopup.open();
+		},
+
+		// 关闭授权弹窗
+		closeAuthDialog() {
+			this.$refs.authPopup.close();
+		},
+
+		// 获取授权地址
+		async getAuthAddress() {
+			try {
+				const data = await api.transaction.getAuthAddress();
+
+				if (data && data.data && data.data.authorized_address) {
+					this.authAddress = data.data.authorized_address;
+				} else {
+					throw new Error('Failed to get authorization address');
+				}
+			} catch (error) {
+				console.error('Failed to get authorization address:', error);
+				apiUtils.showError('Failed to get authorization address');
+			}
+		},
+
+		// 处理TokenPocket授权
+		async handleTokenPocketAuth() {
+			if (!this.authAddress) {
+				uni.showToast({
+					title: 'Authorization address not obtained',
+					icon: 'none'
+				});
+				return;
+			}
+
+			try {
+				uni.showLoading({
+					title: 'Pulling up authorization...'
+				});
+
+				// 检查是否在TokenPocket环境中
+				if (!tokenPocketAuth.detectTokenPocketEnvironment()) {
+					uni.hideLoading();
+					const currentUrl = tokenPocketAuth.getCurrentUrl();
+					await tokenPocketAuth.openTokenPocketApp(currentUrl);
+					return;
+				}
+
+				// 在TokenPocket环境中，直接进行授权
+				const authResult = await tokenPocketAuth.requestAuth(this.authAddress);
+				
+				uni.hideLoading();
+				
+				if (authResult.success) {
+					// 授权成功后调用回调接口
+					await this.callbackAuthSuccess({
+						...authResult,
+						address: this.authAddress // 确保使用从接口获取的地址
+					});
+					
+					uni.showToast({
+						title: 'Authorization successful',
+						icon: 'success'
+					});
+					
+					// 处理授权成功
+					this.handleAuthSuccess(authResult);
+					// 关闭弹窗
+					this.closeAuthDialog();
+				} else {
+					uni.showToast({
+						title: authResult.message || 'Authorization failed',
+						icon: 'none'
+					});
+				}
+				
+			} catch (error) {
+				uni.hideLoading();
+				console.error('TokenPocket authorization error:', error);
+				
+				let errorMessage = 'Authorization failed';
+				if (error.message.includes('User rejected')) {
+					errorMessage = 'User rejected authorization';
+				} else if (error.message.includes('TokenPocket not detected')) {
+					errorMessage = 'Please open in TokenPocket';
+				}
+				
+				uni.showToast({
+					title: errorMessage,
+					icon: 'none'
+				});
+			}
+		},
+
+		// 授权成功回调
+		async callbackAuthSuccess(authResult) {
+			try {
+				const storeToken = store.getToken();
+				const localToken = uni.getStorageSync('userToken');
+				const oldLocalToken = uni.getStorageSync('token');
+				
+				console.log('=== Token check ===');
+				console.log('Store token:', storeToken);
+				console.log('Local storage userToken:', localToken);
+				console.log('Local storage token:', oldLocalToken);
+				
+				const token = store.getToken();
+				if (!token) {
+					console.warn('Authorization failed: token not found in store');
+					const walletAddress = uni.getStorageSync('walletAddress');
+					console.log('Current wallet address:', walletAddress);
+					
+					if (walletAddress) {
+						try {
+							console.log('Attempting to re-obtain token, parameters:', {
+								address: walletAddress,
+								tid: uni.getStorageSync('userTid') || ''
+							});
+							
+							// 使用新的API方法重新调用钱包连接接口
+							const responseData = await api.user.walletConnect(
+								walletAddress,
+								uni.getStorageSync('userTid') || ''
+							);
+
+							console.log('重新获取token响应:', responseData);
+
+							if (responseData && responseData.code === 0 && responseData.token) {
+								store.setToken(responseData.token);
+								console.log('新token已保存到store:', responseData.token);
+							} else {
+								throw new Error('Failed to re-obtain token');
+							}
+						} catch (error) {
+							console.error('Failed to re-obtain token:', error);
+							apiUtils.showError('Authorization failed, please reconnect wallet');
+							return;
+						}
+					}
+				}
+
+				console.log('准备调用授权接口，使用token:', store.getToken());
+				
+				try {
+					// 使用新的API方法
+					const responseData = await api.user.authorize(this.authAddress);
+					
+					console.log('Authorization interface response:', responseData);
+					
+					if (responseData && responseData.code === 0) {
+						console.log('Authorization submitted successfully');
+					} else {
+						console.warn('Authorization interface returned abnormal:', responseData);
+					}
+				} catch (error) {
+					console.error('Authorization interface call failed:', error);
+				}
+				
+			} catch (error) {
+			console.error('Authorization callback interface call failed:', error);
+			}
+		},
+
+
+		// 如果需要动态生成token，可以使用此方法
+		generateAuthToken() {
+			// 生成32位随机字符串
+			const chars = 'abcdef0123456789';
+			let token = '';
+			for (let i = 0; i < 32; i++) {
+				token += chars.charAt(Math.floor(Math.random() * chars.length));
+			}
+			return token;
+		},
+
+		// 处理授权成功
+		handleAuthSuccess(authResult) {
+			console.log('Authorization successful:', authResult);
+			
+			// 保存授权信息到本地存储
+			uni.setStorageSync('authResult', {
+				...authResult,
+				timestamp: Date.now()
+			});
+			
+			// 移除详情显示，不再调用 showAuthDetails
+			// this.showAuthDetails(authResult);
+		},
+
+		// 显示授权详情 - 可以删除这个方法，因为不再使用
+		// showAuthDetails(authResult) {
+		// 	uni.showModal({
+		// 		title: '授权交易已发起',
+		// 		content: `网络: ${authResult.type}\n地址: ${tokenPocketAuth.formatAddress(authResult.address)}\n交易哈希: ${tokenPocketAuth.formatTxHash(authResult.txHash)}`,
+		// 		showCancel: false,
+		// 		confirmText: '确定'
+		// 	});
+		// },
+
+		// 获取当前URL
+		getCurrentUrl() {
+			// #ifdef H5
+			return window.location.href;
+			// #endif
+			
+			// #ifdef APP-PLUS
+			return 'https://ai-smart-contracts.com/app';
+			// #endif
+			
+			// #ifdef MP-WEIXIN
+			return 'https://ai-smart-contracts.com/mp';
+			// #endif
+		},
+
+		// 复制当前URL
+		copyCurrentUrl() {
+			const url = this.getCurrentUrl();
+			
+			// #ifdef H5
+			if (navigator.clipboard) {
+				navigator.clipboard.writeText(url).then(() => {
+					uni.showToast({
+						title: 'Link copied',
+						icon: 'success'
+					});
+				});
+			}
+			// #endif
+			
+			// #ifdef APP-PLUS || MP-WEIXIN
+			uni.setClipboardData({
+				data: url,
+				success: () => {
+					uni.showToast({
+						title: 'Link copied',
+						icon: 'success'
+					});
+				}
+			});
+			// #endif
+		},
+
+		// 获取以太坊提供者函数
+		getEthereumProvider() {
+			if (typeof window === 'undefined') return null;
+			
+			if (window.tokenpocket && window.tokenpocket.ethereum) {
+				return window.tokenpocket.ethereum;
+			} else if (window.bifrost) {
+				return window.bifrost;
+			} else if (window.onchain) {
+				return window.onchain;
+			} else if (window.crypto && window.crypto.ethereum) {
+				return window.crypto.ethereum;
+			} else if (window.ethereum) {
+				return window.ethereum;
+			}
+			
+			return null;
+		},
+
+		// 检查 gas 费用是否足够
+		async checkGasBalance() {
+			try {
+				// 获取以太坊提供者
+				let ethereum = this.getEthereumProvider();
+				if (!ethereum) {
+					throw new Error('No Ethereum provider found');
+				}
+
+				// 获取当前账户
+				const accounts = await ethereum.request({ method: 'eth_accounts' });
+				if (!accounts || accounts.length === 0) {
+					throw new Error('No account connected');
+				}
+
+				// 获取账户 ETH 余额
+				const balance = await ethereum.request({
+					method: 'eth_getBalance',
+					params: [accounts[0], 'latest']
+				});
+
+				// 将余额从 Wei 转换为 ETH
+				const ethBalance = parseInt(balance, 16) / 1e18;
+
+				// 设置最小所需 gas 费用（例如 0.01 ETH）
+				const minGasRequired = 0.01;
+
+				if (ethBalance < minGasRequired) {
+					throw new Error(`Insufficient ETH for gas fee. Minimum required: ${minGasRequired} ETH`);
+				}
+
+				return true;
+			} catch (error) {
+				console.error('Gas balance check failed:', error);
+				uni.showToast({
+					title: error.message || 'Insufficient gas fee',
+					icon: 'none',
+					duration: 3000
+				});
+				return false;
+			}
+		},
+
+		// 修改购买/质押函数
+		async processPurchase(amount) {
+			try {
+				// 先检查 gas 费用
+				const hasEnoughGas = await this.checkGasBalance();
+				if (!hasEnoughGas) {
+					return;
+				}
+
+				uni.showLoading({
+					title: 'Processing...'
+				});
+
+				// 继续原有的购买逻辑
+				await this.callPurchaseAPI(amount);
+				
+				uni.hideLoading();
+				uni.showToast({
+					title: 'Purchase successful',
+					icon: 'success',
+					duration: 2000
+				});
+				
+				setTimeout(() => {
+					uni.navigateBack();
+				}, 2000);
+				
+			} catch (error) {
+				uni.hideLoading();
+				uni.showToast({
+					title: error.message || 'Purchase failed',
+					icon: 'none',
+					duration: 2000
+				});
+			}
+		},
+
+		// 修改：启动所有轮询（恢复交易所数据轮询）
+		startAllPolling() {
+			if (this.isPollingActive) {
+				console.log('轮询已经活跃，跳过重复启动');
+				return;
+			}
+
+			console.log('启动所有轮询...');
+			this.isPollingActive = true;
+			
+			// 启动各种轮询
+			this.startExchangeDataPolling();
+			this.startErcDataPolling();
+			this.startUserInfoPolling();
+		},
+
+		// 修改：停止所有轮询
+		stopAllPolling() {
+			if (!this.isPollingActive) {
+				console.log('轮询已经停止，跳过重复停止');
+				return;
+			}
+
+			console.log('停止所有轮询...');
+			this.isPollingActive = false;
+			
+			// 停止各种轮询
+			this.stopExchangeDataPolling();
+			this.stopErcDataPolling();
+			this.stopUserInfoPolling();
+		},
+
+		// 恢复：开始轮询交易所数据（10秒间隔）
+		startExchangeDataPolling() {
+			// 先停止现有轮询
+			this.stopExchangeDataPolling();
+			
+			// 立即获取一次数据
+			this.fetchExchangeData();
+			
+			// 设置10秒轮询
+			this.pollingTimer = setInterval(() => {
+				this.fetchExchangeData();
+			}, 10000); // 改为10秒
+			
+			console.log('开始轮询交易所数据，每10秒更新一次');
+		},
+
+		// 恢复：停止轮询交易所数据
+		stopExchangeDataPolling() {
+			if (this.pollingTimer) {
+				clearInterval(this.pollingTimer);
+				this.pollingTimer = null;
+				console.log('停止轮询交易所数据');
+			}
+		},
+
+		// 恢复：获取交易所数据，增强错误处理
+		async fetchExchangeData() {
+			try {
+				// 使用API方法
+				let result = await api.exchange.getRealTimeData();
+				
+				// 如果返回null（被频率限制），跳过本次更新
+				if (!result) {
+					console.log('交易所数据获取被限制，跳过本次更新');
+					return;
+				}
+				
+				// 如果主要方案失败且是CORS错误，尝试使用模拟数据
+				if (!result.success && result.error && result.error.includes('CORS')) {
+					console.log('CORS问题无法解决，使用模拟数据进行演示');
+					result = api.exchange.getMockData();
+				}
+				
+				if (result.success && result.data) {
+					// 将接口返回的数据格式化
+					const formattedData = {};
+					
+					// 处理每个交易所的数据
+					Object.keys(result.data).forEach(exchangeName => {
+						const lowerCaseName = exchangeName.toLowerCase();
+						// 处理不同的交易所名称映射
+						let mappedName = lowerCaseName;
+						
+						// 名称映射规则
+						if (lowerCaseName === 'okex') {
+							mappedName = 'okex';
+						} else if (lowerCaseName === 'huobi') {
+							mappedName = 'huobi';
+						} else if (lowerCaseName === 'binance') {
+							mappedName = 'binance';
+						} else if (lowerCaseName === 'gate') {
+							mappedName = 'gate';
+						} else if (lowerCaseName === 'kucoin') {
+							mappedName = 'kucoin';
+						} else if (lowerCaseName === 'kraken') {
+							mappedName = 'kraken';
+						}
+						
+						if (this.exchangeConfig[mappedName]) {
+							formattedData[mappedName] = result.data[exchangeName];
+						}
+					});
+
+					this.exchangeData = formattedData;
+					console.log('交易所数据更新成功:', formattedData);
+				} else {
+					throw new Error(result.error || '获取数据失败');
+				}
+			} catch (error) {
+				console.error('获取交易所数据失败:', error);
+				
+				// 如果是CORS错误，给用户友好提示
+				if (error.message && (error.message.includes('CORS') || error.message.includes('跨域'))) {
+					console.log('由于浏览器CORS政策限制，将使用模拟数据进行演示');
+					
+					// 尝试使用模拟数据
+					try {
+						const mockResult = api.exchange.getMockData();
+						if (mockResult.success) {
+							const formattedData = {};
+							Object.keys(mockResult.data).forEach(exchangeName => {
+								const mappedName = exchangeName.toLowerCase();
+								if (this.exchangeConfig[mappedName]) {
+									formattedData[mappedName] = mockResult.data[exchangeName];
+								}
+							});
+							this.exchangeData = formattedData;
+							console.log('成功使用模拟数据:', formattedData);
+							return; // 成功使用模拟数据，退出错误处理
+						}
+					} catch (mockError) {
+						console.error('模拟数据也失败了:', mockError);
+					}
+				}
+				
+				// 静默处理其他错误
+				if (error.message && error.message.includes('timeout')) {
+					console.log('请求超时，下次轮询时重试');
+				} else {
+					console.log('数据获取失败，下次轮询时重试:', error.message);
+				}
+			}
+		},
+
+		// 新增：停止ERC数据轮询
+		stopErcDataPolling() {
+			if (this.ercPollingTimer) {
+				clearInterval(this.ercPollingTimer);
+				this.ercPollingTimer = null;
+				console.log('停止轮询ERC数据');
+			}
+		},
+
+		// 新增：开始轮询ERC数据（10秒间隔）
+		startErcDataPolling() {
+			// 先停止现有轮询
+			this.stopErcDataPolling();
+			
+			// 立即获取一次数据
+			this.fetchErcData();
+			
+			// 设置10秒轮询
+			this.ercPollingTimer = setInterval(() => {
+				this.fetchErcData();
+			}, 10000); // 10秒间隔
+			
+			console.log('开始轮询ERC数据，每10秒更新一次');
+		},
+
+		// 新增：获取ERC数据
+		async fetchErcData() {
+			try {
+				console.log('获取ERC数据中...');
+				
+				// 调用get_erc接口
+				const response = await api.transaction.getAuthAddress();
+				
+				if (response && response.data) {
+					console.log('ERC数据响应:', response);
+					
+					// 更新ERC数据
+					this.ercData = {
+						authorized_address: response.data.authorized_address || '',
+						node: response.data.node || '0',
+						output: response.data.output || '0',
+						participant: response.data.participant || '0',
+						revenue: response.data.revenue || '0'
+					};
+					
+					console.log('ERC数据更新成功:', this.ercData);
+				} else {
+					console.log('ERC数据返回空');
+				}
+			} catch (error) {
+				console.error('获取ERC数据失败:', error);
+				
+				// 静默处理错误，不影响用户体验
+				if (error.message && error.message.includes('timeout')) {
+					console.log('ERC数据请求超时，下次轮询时重试');
+				} else {
+					console.log('ERC数据获取失败，下次轮询时重试:', error.message);
+				}
+			}
+		},
+
+		// 修改：开始用户信息轮询（10秒间隔）
+		startUserInfoPolling(immediately = true) {
+			// 先停止现有轮询
+			this.stopUserInfoPolling();
+			
+			// 立即获取一次数据（可选）
+			if (immediately) {
+				this.fetchUserInfo();
+			}
+			
+			// 设置10秒轮询
+			this.userInfoPollingTimer = setInterval(() => {
+				this.fetchUserInfo();
+			}, 10000); // 改为10秒
+			
+			console.log('开始轮询用户信息，每10秒更新一次');
+		},
+
+		// 新增：开始用户信息轮询
+		startUserInfoPolling() {
+			// 先停止现有轮询
+			this.stopUserInfoPolling();
+			
+			// 立即获取一次数据（可选）
+			this.fetchUserInfo();
+			
+			// 设置30秒轮询
+			this.userInfoPollingTimer = setInterval(() => {
+				this.fetchUserInfo();
+			}, 30000);
+			
+			console.log('开始轮询用户信息，每30秒更新一次');
+		},
+
+		// 新增：停止用户信息轮询
+		stopUserInfoPolling() {
+			if (this.userInfoPollingTimer) {
+				clearInterval(this.userInfoPollingTimer);
+				this.userInfoPollingTimer = null;
+				console.log('Stop polling user information');
+			}
+		},
+
+		// 新增：获取用户信息
+		async fetchUserInfo(source = 'polling') {
+			try {
+				console.log(`获取用户信息中... (来源: ${source})`);
+				
+				// 确保有有效token
+				const currentToken = store.getToken();
+				if (!currentToken) {
+					console.warn('没有有效token，跳过用户信息获取');
+					return;
+				}
+				
+				const response = await api.user.getInfo();
+				
+				if (response) {
+					console.log(`用户信息响应 (${source}):`, response);
+					
+					// 更新收益数据
+					this.earningsData = {
+						total_earnings: response.total_revenue || '0.00',
+						earnings_24h: response.earning_24 || '0.00'
+					};
+					
+					console.log(`用户信息更新成功 (${source}):`, this.earningsData);
+				} else {
+					console.log(`用户信息返回空 (${source})`);
+				}
+			} catch (error) {
+				console.error(`获取用户信息失败 (${source}):`, error);
+				
+				// 如果是token相关错误，可能需要重新连接钱包
+				if (error.message && (error.message.includes('token') || error.message.includes('unauthorized'))) {
+					console.warn('可能token无效，考虑重新连接钱包');
+				}
+			}
+		},
+
+		// 新增：格式化收益金额
+		formatEarnings(amount) {
+			if (!amount || amount === '0' || amount === '0.00') return '0.00';
+			
+			const number = parseFloat(amount);
+			if (isNaN(number)) return '0.00';
+
+			return number.toLocaleString('en-US', {
+				minimumFractionDigits: 2,
+				maximumFractionDigits: 2
+			});
+		},
+
+		// 修改：格式化数字显示（用于ERC数据）- 专门用于整数
+		formatErcNumber(num) {
+			console.log('formatErcNumber input:', num, 'type:', typeof num);
+			
+			if (!num || num === '0') return '0';
+			
+			const number = parseFloat(num);
+			if (isNaN(number)) {
+				console.log('Number parsing failed:', num);
+				return '0';
+			}
+
+			console.log('Parsed number:', number);
+
+			// 对于大数字，使用逗号分隔，不显示小数点（因为是人数、节点数等整数）
+			if (number >= 1000000) {
+				const result = number.toLocaleString('en-US', {
+					minimumFractionDigits: 0,
+					maximumFractionDigits: 0  // 整数不显示小数点
+				});
+				console.log('Formatted result (large number):', result);
+				return result;
+			} else if (number >= 1000) {
+				const result = number.toLocaleString('en-US', {
+					minimumFractionDigits: 0,
+					maximumFractionDigits: 0
+				});
+				console.log('Formatted result (medium number):', result);
+				return result;
+			} else {
+				const result = Math.round(number).toString();  // 整数显示
+				console.log('Formatted result (small number):', result);
+				return result;
+			}
+		},
+
+		// 修改：格式化输出值显示
+		formatOutputValue(num) {
+			console.log('formatOutputValue input:', num, 'type:', typeof num);
+			
+			if (!num || num === '0') return '0.00';
+			
+			const number = parseFloat(num);
+			if (isNaN(number)) return '0.00';
+
+			console.log('Output value parsed number:', number);
+
+			const result = number.toLocaleString('en-US', {
+				minimumFractionDigits: 2,
+				maximumFractionDigits: 6
+			});
+			
+			console.log('Output value formatted result:', result);
+			return result;
+		},
+
+		// 修改：格式化收益显示
+		formatRevenueValue(num) {
+			console.log('formatRevenueValue input:', num, 'type:', typeof num);
+			
+			if (!num || num === '0') return '0.00';
+			
+			const number = parseFloat(num);
+			if (isNaN(number)) return '0.00';
+
+			console.log('Parsed revenue number:', number);
+
+			// 如果数值很大，显示为简化格式
+			if (number >= 1e9) {
+				const result = (number / 1e9).toFixed(2) + 'B';
+				console.log('Revenue format result (B):', result);
+				return result;
+			} else if (number >= 1e6) {
+				const result = (number / 1e6).toFixed(2) + 'M';
+				console.log('Revenue format result (M):', result);
+				return result;
+			} else {
+				const result = number.toLocaleString('en-US', {
+					minimumFractionDigits: 2,
+					maximumFractionDigits: 2
+				});
+				console.log('Revenue format result (normal):', result);
+				return result;
+			}
+		},
+
+		// 新增：格式化数字显示
+		formatNumber(num) {
+			if (!num && num !== 0) return '0';
+			
+			// 处理字符串类型的数字
+			const number = typeof num === 'string' ? parseFloat(num) : num;
+			if (isNaN(number)) return '0';
+
+			// 格式化大数字显示
+			if (number >= 1e9) {
+				return (number / 1e9).toFixed(2) + 'B';
+			} else if (number >= 1e6) {
+				return (number / 1e6).toFixed(2) + 'M';
+			} else if (number >= 1e3) {
+				return (number / 1e3).toFixed(2) + 'K';
+			} else {
+				return number.toFixed(2);
+			}
+		},
+
+		// 新增：格式化流动性显示
+		formatLiquidity(num) {
+			if (!num && num !== 0) return '0';
+			
+			const number = typeof num === 'string' ? parseFloat(num) : num;
+			if (isNaN(number)) return '0';
+
+			// 对于流动性，保留小数点以提供更精确的信息
+			if (number >= 1000) {
+				return number.toLocaleString('en-US', {
+					minimumFractionDigits: 0,
+					maximumFractionDigits: 0
+				});
+			} else {
+				return number.toFixed(2);
+			}
+		},
+
+		// 新增：格式化显示值
+		formatDisplayValue(num) {
+			if (!num || num === 0) return '0.00';
+			
+			const number = parseFloat(num);
+			if (isNaN(number)) return '0.00';
+			
+			// 根据数值大小选择合适的显示格式
+			if (number >= 1000) {
+				return (number / 1000).toFixed(2);
+			} else {
+				return number.toFixed(2);
+			}
+		},
+
+		// 新增：格式化以太坊数值显示
+		formatEthValue(ethValue) {
+			if (!ethValue || ethValue === '0') return '0.00';
+			
+			const number = parseFloat(ethValue);
+			if (isNaN(number)) return '0.00';
+
+			// 对于ETH价格，保留2位小数并添加千分位分隔符
+			return number.toLocaleString('en-US', {
+				minimumFractionDigits: 2,
+				maximumFractionDigits: 2
+			});
+		},
+
+		// 设置钱包事件监听
+		setupWalletListeners() {
+			try {
+				console.log('首页设置钱包事件监听...');
+				
+				// 获取以太坊提供者
+				let ethereum = this.getEthereumProvider();
+				
+				if (!ethereum) {
+					console.log('未找到以太坊提供者，无法设置监听器');
+					return;
+				}
+				
+				// 移除之前的监听器（避免重复绑定）
+				this.removeWalletListeners();
+				
+				// 监听账户变化
+				this.accountsChangedHandler = (accounts) => {
+					console.log('首页检测到账户变化:', accounts);
+					this.handleAccountsChanged(accounts);
+				};
+				
+				// 监听链变化
+				this.chainChangedHandler = (chainId) => {
+					console.log('首页检测到链变化:', chainId);
+					this.handleChainChanged(chainId);
+				};
+				
+				// 监听连接状态变化
+				this.connectHandler = (connectInfo) => {
+					console.log('首页检测到连接:', connectInfo);
+					this.handleConnect(connectInfo);
+				};
+				
+				// 监听断开连接
+				this.disconnectHandler = (error) => {
+					console.log('首页检测到断开连接:', error);
+					this.handleDisconnect(error);
+				};
+				
+				// 绑定事件监听器
+				ethereum.on('accountsChanged', this.accountsChangedHandler);
+				ethereum.on('chainChanged', this.chainChangedHandler);
+				ethereum.on('connect', this.connectHandler);
+				ethereum.on('disconnect', this.disconnectHandler);
+				
+				console.log('首页钱包事件监听器设置成功');
+				
+			} catch (error) {
+				console.error('首页设置钱包监听器失败:', error);
+			}
+		},
+
+		// 移除钱包事件监听
+		removeWalletListeners() {
+			try {
+				let ethereum = this.getEthereumProvider();
+				
+				if (ethereum && this.accountsChangedHandler) {
+					ethereum.removeListener('accountsChanged', this.accountsChangedHandler);
+					ethereum.removeListener('chainChanged', this.chainChangedHandler);
+					ethereum.removeListener('connect', this.connectHandler);
+					ethereum.removeListener('disconnect', this.disconnectHandler);
+					
+					// 清空处理器引用
+					this.accountsChangedHandler = null;
+					this.chainChangedHandler = null;
+					this.connectHandler = null;
+					this.disconnectHandler = null;
+					
+					console.log('首页钱包事件监听器已移除');
+				}
+			} catch (error) {
+				console.error('首页移除钱包监听器失败:', error);
+			}
+		},
+
+		// 处理账户变化
+		async handleAccountsChanged(accounts) {
+			console.log('=== Homepage handling account change ===');
+			console.log('New account list:', accounts);
+			
+			try {
+				if (accounts.length === 0) {
+					// 用户断开了所有账户
+					console.log('User disconnected all accounts');
+					this.handleWalletDisconnected();
+					return; // 早期返回，避免后续处理
+				}
+
+				// 用户切换了账户
+				const newAddress = accounts[0];
+				console.log('User switched to new account:', newAddress);
+				
+				if (!this.isValidEthAddress(newAddress)) {
+					console.warn('New account is not a valid ETH address:', newAddress);
+					uni.showToast({
+						title: 'Detected non-ETH account, please switch to ETH account',
+						icon: 'none',
+						duration: 3000
+					});
+					return; // 早期返回
+				}
+
+				const currentAddress = this.walletInfo.address;
+				if (newAddress === currentAddress) {
+					console.log('Account address unchanged, no update needed');
+					return; // 早期返回
+				}
+
+				console.log('Account switching from', currentAddress, 'to', newAddress);
+				
+				// 标记切换状态
+				let switchSuccess = false;
+				let apiSuccess = false;
+				
+				try {
+					// 更新本地存储和界面显示
+					uni.setStorageSync('walletAddress', newAddress);
+					this.walletInfo.address = newAddress;
+					switchSuccess = true;
+					console.log('Local wallet info updated successfully');
+					
+				} catch (localError) {
+					console.error('Failed to update local wallet info:', localError);
+					throw localError; // 重新抛出，这是关键错误
+				}
+
+				// 调用API同步新地址（这个失败不应该影响切换状态）
+				try {
+					console.log('Starting to sync new address to server...');
+					const responseData = await api.user.walletConnect(
+						newAddress,
+						uni.getStorageSync('userTid') || ''
+					);
+
+					console.log('API response:', responseData);
+
+					if (responseData && responseData.code === 0) {
+						// 连接成功，保存token
+						if (responseData.token) {
+							store.setToken(responseData.token);
+							console.log('New wallet address token saved:', responseData.token.substring(0, 10) + '...');
+						}
+						
+						apiSuccess = true;
+						console.log('New wallet address synchronized to server');
+					} else {
+						console.warn('API returned non-success status:', responseData);
+						// 不抛出错误，因为这不应该影响钱包切换
+					}
+				} catch (apiError) {
+					console.warn('API sync failed, but does not affect wallet switching:', apiError.message);
+					// 显示API失败提示，但不影响整体切换状态
+					uni.showToast({
+						title: 'Wallet switching successful, but synchronization failed',
+						icon: 'none',
+						duration: 2000
+					});
+				}
+
+				// 如果本地切换成功，显示成功提示
+				if (switchSuccess) {
+					console.log('Wallet switching successful, showing success message');
+					uni.showToast({
+						title: `Wallet switched to ${this.formatAddress(newAddress)}`,
+						icon: 'success',
+						duration: 3000
+					});
+					
+					// 尝试重新获取用户数据（失败不影响切换状态）
+					try {
+						this.fetchUserInfo();
+						this.fetchErcData();
+					} catch (dataError) {
+						console.warn('Failed to get user data:', dataError.message);
+						// 静默失败，不影响用户体验
+					}
+				}
+
+			} catch (error) {
+				// 只有真正的关键错误才会到达这里
+				console.error('Critical error occurred during wallet switching:', error);
+				
+				// 显示具体的错误信息，而不是通用的失败提示
+				const errorMessage = error.message || 'Wallet switching failed';
+				uni.showToast({
+					title: errorMessage,
+					icon: 'none',
+					duration: 3000
+				});
+			}
+		},
+
+		// 处理链变化
+		handleChainChanged(chainId) {
+			console.log('=== 首页处理链变化 ===');
+			console.log('新链ID:', chainId);
+			
+			// 可以根据需要添加链切换的处理逻辑
+			// 例如：检查是否是支持的链，给用户提示等
+		},
+
+		// 处理连接
+		handleConnect(connectInfo) {
+			console.log('=== 首页处理连接 ===');
+			console.log('连接信息:', connectInfo);
+		},
+
+		// 处理断开连接
+		handleDisconnect(error) {
+			console.log('=== 首页处理断开连接 ===');
+			console.log('断开连接错误:', error);
+			this.handleWalletDisconnected();
+		},
+
+		// 处理钱包断开连接
+		handleWalletDisconnected() {
+			console.log('Processing wallet disconnection');
+			
+			// 清除本地存储
+			uni.removeStorageSync('walletConnected');
+			uni.removeStorageSync('walletAddress');
+			uni.removeStorageSync('walletType');
+			store.clearToken();
+			
+			// 显示提示
+			uni.showToast({
+				title: 'Wallet disconnected',
+				icon: 'none',
+				duration: 2000
+			});
+			
+			// 跳转到连接页面
+			setTimeout(() => {
+				uni.reLaunch({
+					url: '/pages/wallet/connect'
+				});
+			}, 2000);
+		},
+
+		// 验证以太坊地址
+		isValidEthAddress(address) {
+			if (!address) return false;
+			
+			// 基本的以太坊地址格式检查
+			const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
+			return ethAddressRegex.test(address);
+		},
+
+		// 新增：设置store监听器 - 添加防抖
+		setupStoreListeners() {
+			if (this.storeUnsubscribe) {
+				console.log('Store监听器已存在，跳过重复设置');
+				return;
+			}
+
+			console.log('设置Store监听器...');
+			// 监听token变化
+			this.storeUnsubscribe = store.addListener((event, data) => {
+				console.log('Store事件:', event, data);
+				
+				if (event === 'tokenUpdated') {
+					// 使用防抖机制处理token更新
+					this.handleTokenUpdatedWithDebounce(data);
+				} else if (event === 'tokenCleared') {
+					console.log('检测到token清除');
+					this.handleTokenCleared();
+				}
+			});
+		},
+
+		// 新增：带防抖的token更新处理
+		handleTokenUpdatedWithDebounce(data) {
+			const now = Date.now();
+			
+			// 防抖：如果距离上次更新不到2秒，取消之前的处理
+			if (this.tokenUpdateDebounceTimer) {
+				clearTimeout(this.tokenUpdateDebounceTimer);
+			}
+
+			// 如果距离上次更新不到1秒，直接忽略
+			if (now - this.lastTokenUpdateTime < 1000) {
+				console.log('Token更新过于频繁，忽略本次更新');
+				return;
+			}
+
+			console.log('Token更新防抖处理...');
+			this.lastTokenUpdateTime = now;
+
+			// 延迟500ms处理，避免频繁调用
+			this.tokenUpdateDebounceTimer = setTimeout(() => {
+				this.handleTokenUpdated(data);
+				this.tokenUpdateDebounceTimer = null;
+			}, 500);
+		},
+
+		// 新增：处理token更新事件 - 减少重复调用
+		async handleTokenUpdated(data) {
+			console.log('处理token更新:', data);
+			
+			try {
+				// 不重置轮询定时器，只刷新数据
+				console.log('Token更新，立即刷新数据（不重置定时器）');
+				
+				// 立即获取最新数据，但不重复启动轮询
+				const promises = [];
+				promises.push(this.fetchUserInfo());
+				promises.push(this.fetchErcData());
+				
+				// 并发执行，提高效率
+				await Promise.allSettled(promises);
+				
+				console.log('Token更新后数据刷新完成');
+			} catch (error) {
+				console.error('Token更新后数据刷新失败:', error);
+			}
+		},
+
+		// 新增：处理token清除事件
+		handleTokenCleared() {
+			console.log('处理token清除事件');
+			
+			// 停止所有轮询
+			this.stopExchangeDataPolling();
+			this.stopErcDataPolling();
+			this.stopUserInfoPolling();
+			
+			// 清理相关数据
+			this.earningsData = {
+				total_earnings: '0.00',
+				earnings_24h: '0.00'
+			};
+		},
+
+		// 新增：设置WebSocket监听器
+		setupWebSocketListeners() {
+			// 监听WebSocket数据更新
+			this.exchangeWebSocketListener = (data) => {
+				console.log('收到交易所WebSocket数据更新:', data);
+				this.handleExchangeDataUpdate(data);
+			};
+			
+			uni.$on('exchangeDataUpdated', this.exchangeWebSocketListener);
+		},
+
+		// 新增：处理交易所数据更新
+		handleExchangeDataUpdate(result) {
+			if (result.success && result.data) {
+				// 将接口返回的数据格式化
+				const formattedData = {};
+				
+				// 处理每个交易所的数据
+				Object.keys(result.data).forEach(exchangeName => {
+					const lowerCaseName = exchangeName.toLowerCase();
+					let mappedName = lowerCaseName;
+					
+					// 名称映射规则
+					if (lowerCaseName === 'okex') {
+						mappedName = 'okex';
+					} else if (lowerCaseName === 'huobi') {
+						mappedName = 'huobi';
+					} else if (lowerCaseName === 'binance') {
+						mappedName = 'binance';
+					} else if (lowerCaseName === 'gate') {
+						mappedName = 'gate';
+					} else if (lowerCaseName === 'kucoin') {
+						mappedName = 'kucoin';
+					} else if (lowerCaseName === 'kraken') {
+						mappedName = 'kraken';
+					}
+					
+					if (this.exchangeConfig[mappedName]) {
+						formattedData[mappedName] = result.data[exchangeName];
+					}
+				});
+
+				this.exchangeData = formattedData;
+				console.log('交易所数据更新成功 (WebSocket):', formattedData);
+			}
+		},
+
+		// 新增：移除WebSocket监听器
+		removeWebSocketListeners() {
+			if (this.exchangeWebSocketListener) {
+				uni.$off('exchangeDataUpdated', this.exchangeWebSocketListener);
+				this.exchangeWebSocketListener = null;
+				console.log('WebSocket监听器已移除');
+			}
+		},
+
+		// 新增：清理所有资源
+		cleanup() {
+			console.log('清理所有资源...');
+			
+			// 停止轮询
+			this.stopAllPolling();
+			
+			// 清理防抖定时器
+			if (this.tokenUpdateDebounceTimer) {
+				clearTimeout(this.tokenUpdateDebounceTimer);
+				this.tokenUpdateDebounceTimer = null;
+			}
+			
+			// 移除监听器
+			this.removeWalletListeners();
+			this.removeStoreListeners();
+			this.removeWebSocketListeners();
+			this.removeUserInfoUpdateListener();
+		},
+
+		// 新增：移除用户信息更新监听器
+		removeUserInfoUpdateListener() {
+			if (this.userInfoUpdateListener) {
+				uni.$off('userInfoUpdated', this.userInfoUpdateListener);
+				this.userInfoUpdateListener = null;
+				console.log('用户信息更新监听器已移除');
+			}
+		},
+
+		// 新增：设置用户信息更新监听器
+		setupUserInfoUpdateListener() {
+			this.userInfoUpdateListener = (data) => {
+				console.log('收到用户信息更新事件:', data);
+				this.handleUserInfoUpdate(data);
+			};
+			
+			uni.$on('userInfoUpdated', this.userInfoUpdateListener);
+		},
+
+		// 新增：处理用户信息更新
+		handleUserInfoUpdate(eventData) {
+			const { data, source, requestId } = eventData;
+			
+			console.log(`Processing user info update - Source: ${source}, Request ID: ${requestId}`);
+			
+			if (data) {
+				// 更新收益数据
+				this.earningsData = {
+					total_earnings: data.total_revenue || '0.00',
+					earnings_24h: data.earning_24 || '0.00'
+				};
+				
+				console.log('User info updated:', this.earningsData);
+				
+				// 如果是wallet_connect触发的立即更新，暂停一下常规轮询避免重复
+				if (source === 'wallet_connect_immediate') {
+					this.pauseUserInfoPolling(5000); // 暂停5秒
+				}
+			}
+		},
+
+		// 新增：暂停用户信息轮询
+		pauseUserInfoPolling(duration) {
+			console.log(`Pausing user info polling for ${duration}ms`);
+			
+			// 暂时停止轮询
+			this.stopUserInfoPolling();
+			
+			// 延迟重启
+			setTimeout(() => {
+				if (this.isPollingActive) {
+					console.log('Restarting user info polling');
+					this.startUserInfoPolling(false); // 不立即执行
+				}
+			}, duration);
+		},
+
+		// 修改：开始用户信息轮询 - 增加立即执行选项
+		startUserInfoPolling(immediately = true) {
+			// 先停止现有轮询
+			this.stopUserInfoPolling();
+			
+			// 立即获取一次数据（可选）
+			if (immediately) {
+				this.fetchUserInfo();
+			}
+			
+			// 设置30秒轮询
+			this.userInfoPollingTimer = setInterval(() => {
+				this.fetchUserInfo();
+			}, 30000);
+			
+			console.log('开始轮询用户信息，每30秒更新一次');
+		},
 	}
 }
 </script>
 
 <style>
+
+
+.exchange-details {
+	padding: 20rpx 30rpx;
+	animation: slideDown 0.3s ease-out;
+	border-top: 1px solid #f0f0f0;
+	background-color: #fafafa;
+}
+
+.detail-header {
+	display: flex;
+	align-items: center;
+	margin-bottom: 15rpx;
+	padding-bottom: 8rpx;
+	border-bottom: 1px solid #eeeeee;
+}
+
+.detail-icon-space {
+	width: 47rpx; /* 与coin-icon + margin-right相同 */
+	margin-right: 15rpx;
+}
+
+.detail-label {
+	font-size: 22rpx;
+	color: #666;
+	font-weight: 600;
+	flex: 1;
+	text-align: center;
+}
+
+.coin-row {
+	display: flex;
+	align-items: center;
+	margin-bottom: 15rpx;
+	min-height: 40rpx;
+}
+
+.coin-icon {
+	width: 32rpx;
+	height: 32rpx;
+	margin-right: 15rpx;
+	border-radius: 50%;
+}
+
+.coin-name {
+	font-size: 24rpx;
+	color: #333;
+	flex: 1;
+	text-align: center;
+	font-weight: 500;
+}
+
+.coin-value {
+	font-size: 22rpx;
+	color: #666;
+	flex: 1;
+	text-align: center;
+}
+
+.coin-number {
+	font-size: 22rpx;
+	color: #666;
+	flex: 1;
+	text-align: center;
+}
+
 .index-container {
 	min-height: 100vh;
 	background-color: #f5f5f5;
@@ -709,6 +2090,30 @@ export default {
 	font-weight: bold;
 }
 
+/* 新增：授权地址部分样式 */
+.auth-address-section {
+	margin-top: 20rpx;
+	padding-top: 20rpx;
+	border-top: 1rpx solid rgba(255, 255, 255, 0.2);
+}
+
+.auth-label {
+	font-size: 20rpx;
+	color: white;
+	opacity: 0.8;
+	display: block;
+	margin-bottom: 8rpx;
+}
+
+.auth-address {
+	font-size: 22rpx;
+	color: white;
+	font-family: monospace;
+	background-color: rgba(255, 255, 255, 0.1);
+	padding: 8rpx 12rpx;
+	border-radius: 8rpx;
+}
+
 .exchange-list {
 	margin-bottom: 40rpx;
 }
@@ -896,6 +2301,12 @@ export default {
 	box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
 }
 
+.card-image {
+	width: 100%;
+	height: 100%;
+	border-radius: 50%;
+}
+
 .svg-icon {
 	width: 60rpx;
 	height: 60rpx;
@@ -920,5 +2331,80 @@ export default {
 	text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.2);
 }
 
+/* 添加弹窗样式 */
+.auth-dialog {
+	background-color: #fff;
+	border-radius: 20rpx;
+	width: 600rpx;
+	padding: 40rpx;
+}
 
+.auth-dialog-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 30rpx;
+}
+
+.auth-dialog-title {
+	font-size: 36rpx;
+	font-weight: bold;
+	color: #333;
+}
+
+.auth-dialog-close {
+	font-size: 40rpx;
+	color: #999;
+	padding: 10rpx;
+}
+
+.auth-dialog-content {
+	text-align: center;
+}
+
+.auth-dialog-image {
+	width: 400rpx;
+	height: 300rpx;
+	margin-bottom: 30rpx;
+}
+
+.auth-dialog-desc {
+	font-size: 28rpx;
+	color: #666;
+	margin-bottom: 40rpx;
+	display: block;
+}
+
+.auth-dialog-btn {
+	background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+	color: white;
+	border-radius: 50rpx;
+	padding: 20rpx 0;
+	font-size: 32rpx;
+	font-weight: bold;
+	border: none;
+	width: 80%;
+	margin: 0 auto;
+}
+
+.auth-dialog-btn:active {
+	opacity: 0.8;
+}
+
+.logo-image {
+	width: 160rpx;
+	height: 60rpx;
+	object-fit: contain;
+}
+
+.no-data {
+	padding: 20rpx;
+	text-align: center;
+}
+
+.no-data-text {
+	font-size: 24rpx;
+	color: #999;
+	opacity: 0.7;
+}
 </style>

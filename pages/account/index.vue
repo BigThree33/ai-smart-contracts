@@ -24,19 +24,19 @@
                 <view class="balance-area">
                     <view class="balance-info">
                         <text class="balance-label">Available Balance(USDT)</text>
-                        <text class="balance-amount">$0.00</text>
+                        <text class="balance-amount">${{ availableBalance }}</text>
                     </view>
                     
                     <!-- 收益统计小板块 -->
                     <view class="revenue-stats">
                         <view class="stat-item">
                             <text class="stat-label">Total revenue(USDT)</text>
-                            <text class="stat-value">0.00</text>
+                            <text class="stat-value">{{ totalRevenue }}</text>
                         </view>
                         <view class="stat-divider">|</view>
                         <view class="stat-item">
                             <text class="stat-label">Earnings 24h(USDT)</text>
-                            <text class="stat-value">0.00</text>
+                            <text class="stat-value">{{ earnings24h }}</text>
                         </view>
                     </view>
                 </view>
@@ -92,12 +92,18 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { api, apiUtils } from '@/utils/api.js';
 
 // 获取状态栏高度
 let statusBarHeight = 0;
 
 // 选中的存取款方式
 const selectedMethod = ref('');
+
+// 用户账户数据
+const availableBalance = ref('0.00');
+const totalRevenue = ref('0.00');
+const earnings24h = ref('0.00');
 
 // 选择存取款方式
 const selectMethod = (method) => {
@@ -109,7 +115,7 @@ const selectMethod = (method) => {
 const handleNext = () => {
     if (!selectedMethod.value) {
         uni.showToast({
-            title: '请选择存取款方式',
+            title: 'Please select a deposit and withdrawal method',
             icon: 'none',
             duration: 2000
         });
@@ -117,7 +123,6 @@ const handleNext = () => {
     }
     
     console.log('进入下一步，选择的方式:', selectedMethod.value);
-    // 后续添加跳转逻辑
     uni.navigateTo({
         url: '/pages/withdraw/index?method=' + selectedMethod.value
     });
@@ -125,30 +130,61 @@ const handleNext = () => {
 
 // 跳转到交易记录页面
 const goToTransactionRecord = () => {
-    console.log('跳转到交易记录页面');
-    // 后续添加跳转逻辑
+    console.log('Go to transaction record page');
     uni.navigateTo({
-        url: '/pages/record/index'
+        url: '/pages/record/index?source=account&type=transaction'
     });
 };
 
 // 跳转到收益记录页面
 const goToRevenueRecord = () => {
-    console.log('跳转到收益记录页面');
-    // 后续添加跳转逻辑
+    console.log('Go to revenue record page');
     uni.navigateTo({
-        url: '/pages/record/index'
+        url: '/pages/record/index?source=account&type=revenue'
     });
 };
 
-// 页面加载时获取系统信息
-onMounted(() => {
+// 获取用户信息
+const fetchUserInfo = async () => {
+    try {
+        apiUtils.showLoading('Loading account info...');
+        
+        const data = await api.user.getInfo();
+        
+        if (data) {
+            // 映射接口返回的数据到页面显示字段
+            availableBalance.value = apiUtils.formatAmount(data.money);
+            totalRevenue.value = apiUtils.formatAmount(data.total_revenue);
+            earnings24h.value = apiUtils.formatAmount(data.earning_24);
+            
+            console.log('账户信息更新成功:', {
+                availableBalance: availableBalance.value,
+                totalRevenue: totalRevenue.value,
+                earnings24h: earnings24h.value
+            });
+        }
+        
+    } catch (error) {
+        console.error('Failed to get user info:', error);
+        apiUtils.showError('Failed to load account data');
+    } finally {
+        apiUtils.hideLoading();
+    }
+};
+
+
+
+// 页面加载时获取系统信息和用户数据
+onMounted(async () => {
     try {
         const systemInfo = uni.getSystemInfoSync();
         statusBarHeight = systemInfo.statusBarHeight || 0;
     } catch (e) {
-        console.error('获取状态栏高度失败', e);
+        console.error('Failed to get status bar height', e);
     }
+    
+    // 获取用户账户信息
+    await fetchUserInfo();
 });
 </script>
 

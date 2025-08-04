@@ -22,13 +22,17 @@
 	}, {
 		"path": "pages/pledge/index",
 		"style": {
-			"navigationBarTitleText": "质押",
-			"backgroundColor": "#222222"
+			"navigationBarTitleText": "Pledge",
+			"backgroundColor": "#222222",
+			"navigationStyle": "custom",
+			"app-plus": {
+				"titleNView": false
+			}
 		}
 	}, {
 		"path": "pages/share/index",
 		"style": {
-			"navigationBarTitleText": "分享",
+			"navigationBarTitleText": "Share",
 			"backgroundColor": "#222222",
 			"navigationStyle": "custom",
 			"app-plus": {
@@ -38,7 +42,7 @@
 	}, {
 		"path": "pages/account/index",
 		"style": {
-			"navigationBarTitleText": "我的",
+			"navigationBarTitleText": "My",
 			"backgroundColor": "#222222",
 			"navigationStyle": "custom",
 			"app-plus": {
@@ -48,8 +52,18 @@
 	}, {
 		"path": "pages/record/index",
 		"style": {
-			"navigationBarTitleText": "Record",
-			"backgroundColor": "#222222",
+			"navigationBarTitleText": "Order List",
+			"backgroundColor": "#e8f2ff",
+			"navigationStyle": "custom",
+			"app-plus": {
+				"titleNView": false
+			}
+		}
+	}, {
+		"path": "pages/ai-trading/index",
+		"style": {
+			"navigationBarTitleText": "AI Trading",
+			"backgroundColor": "#4285f4",
 			"navigationStyle": "custom",
 			"app-plus": {
 				"titleNView": false
@@ -68,7 +82,7 @@
 	},{
 		"path": "pages/help/index",
 		"style": {
-			"navigationBarTitleText": "帮助中心",
+			"navigationBarTitleText": "Help Center",
 			"backgroundColor": "#222222",
 			"navigationStyle": "custom",
 			"app-plus": {
@@ -88,8 +102,18 @@
 	},  {
 		"path": "pages/webview/webview",
 		"style": {
-			"navigationBarTitleText": "外部链接",
+			"navigationBarTitleText": "External Link",
 			"backgroundColor": "#ffffff"
+		}
+	},{
+		"path": "pages/buy/index",
+		"style": {
+			"navigationBarTitleText": "Buy Product",
+			"backgroundColor": "#3a73f6",
+			"navigationStyle": "custom",
+			"app-plus": {
+				"titleNView": false
+			}
 		}
 	}],
 	"globalStyle": {
@@ -102,7 +126,7 @@
 		}
 	},
 	"tabBar": {
-		"color": "#999999",
+		"color": "#8a8a8a",
 		"selectedColor": "#4A90E2",
 		"borderStyle": "white",
 		"backgroundColor": "#ffffff",
@@ -112,28 +136,28 @@
 		"height": "60px",
 		"list": [{
 			"pagePath": "pages/index/index",
-			"iconPath": "static/c1.png",
-			"selectedIconPath": "static/c1.png",
+			"iconPath": "static/tab-icons/home.png",
+			"selectedIconPath": "static/tab-icons/home-selected.png",
 			"text": "Home"
 		},{
 			"pagePath": "pages/help/index",
-			"iconPath": "static/c2.png",
-			"selectedIconPath": "static/c2.png",
+			"iconPath": "static/tab-icons/help.png",
+			"selectedIconPath": "static/tab-icons/help-selected.png",
 			"text": "Help"
 		}, {
 			"pagePath": "pages/pledge/index",
-			"iconPath": "static/c3.png",
-			"selectedIconPath": "static/c3.png",
-			"text": "People"
+			"iconPath": "static/tab-icons/pledge.png",
+			"selectedIconPath": "static/tab-icons/pledge-selected.png",
+			"text": "Pledge"
 		}, {
 			"pagePath": "pages/share/index",
-			"iconPath": "static/c4.png",
-			"selectedIconPath": "static/c4.png",
+			"iconPath": "static/tab-icons/share.png",
+			"selectedIconPath": "static/tab-icons/share-selected.png",
 			"text": "Share"
 		}, {
 			"pagePath": "pages/account/index",
-			"iconPath": "static/c5.png",
-			"selectedIconPath": "static/c5.png",
+			"iconPath": "static/tab-icons/account.png",
+			"selectedIconPath": "static/tab-icons/account-selected.png",
 			"text": "Account"
 		}],
 		"position": "bottom"
