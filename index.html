@@ -1,18 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <script>
-      var coverSupport = 'CSS' in window && typeof CSS.supports === 'function' && (CSS.supports('top: env(a)') ||
-        CSS.supports('top: constant(a)'))
-      document.write(
-        '<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0' +
-        (coverSupport ? ', viewport-fit=cover' : '') + '" />')
-    </script>
-    <title></title>
-    <!--preload-links-->
-    <!--app-context-->
-  </head>
+  	<head>
+		<meta charset="UTF-8" />
+		<script>
+			var coverSupport = 'CSS' in window && typeof CSS.supports === 'function' && (CSS.supports('top: env(a)') ||
+				CSS.supports('top: constant(a)'))
+			document.write(
+				'<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0' +
+				(coverSupport ? ', viewport-fit=cover' : '') + '" />')
+		</script>
+		<title></title>
+		<!-- Web3 and Wallet Connection Libraries -->
+		<!-- 更新Web3依赖版本，提高兼容性 -->
+		<script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+		<script src="https://unpkg.com/web3modal@2.0.0/dist/index.js"></script>
+		<script src="https://unpkg.com/@walletconnect/web3-provider@2.0.0/dist/umd/index.min.js"></script>
+		<script>
+			// 全局钱包连接配置
+			window.WALLET_CONFIG = {
+				networks: {
+					ethereum: {
+						chainId: '0x1',
+						chainName: 'Ethereum Mainnet',
+						rpcUrls: ['https://mainnet.infura.io/v3/'],
+						blockExplorerUrls: ['https://etherscan.io']
+					}
+				},
+				supportedWallets: [
+					'TokenPocket',
+					'MetaMask', 
+					'ImToken',
+					'Bifrost',
+					'Onchain',
+					'Coinbase',
+					'Crypto.com'
+				]
+			};
+		</script>
+		<!--preload-links-->
+		<!--app-context-->
+	</head>
   <body>
     <div id="app"><!--app-html--></div>
     <script type="module" src="/main.js"></script>

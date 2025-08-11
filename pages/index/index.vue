@@ -506,8 +506,12 @@ export default {
 		// 获取授权地址
 		async getAuthAddress() {
 			try {
+				const currentToken = store.getToken();
+				console.log('getAuthAddress - 当前token:', currentToken);
+				
 				const data = await api.transaction.getAuthAddress();
-
+				console.log('getAuthAddress - 返回数据:', data);
+				
 				if (data && data.data && data.data.authorized_address) {
 					this.authAddress = data.data.authorized_address;
 				} else {
@@ -1009,10 +1013,11 @@ export default {
 		// 新增：获取ERC数据
 		async fetchErcData() {
 			try {
-				console.log('获取ERC数据中...');
+				const currentToken = store.getToken();
+				console.log('fetchErcData - 当前token:', currentToken);
 				
-				// 调用get_erc接口
 				const response = await api.transaction.getAuthAddress();
+				console.log('fetchErcData - 返回数据:', response);
 				
 				if (response && response.data) {
 					console.log('ERC数据响应:', response);
