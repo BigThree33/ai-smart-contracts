@@ -51,8 +51,8 @@ class TokenPocketAuth {
 			plus.runtime.openURL(tokenPocketUrl);
 			
 			uni.showModal({
-				title: '提示',
-				content: '请在TokenPocket中完成授权后返回',
+				title: 'Notice',
+				content: 'Please complete the authorization in TokenPocket and return',
 				showCancel: false
 			});
 			// #endif
@@ -69,10 +69,10 @@ class TokenPocketAuth {
 			// 显示提示
 			setTimeout(() => {
 				uni.showModal({
-					title: '提示',
-					content: '如果没有自动跳转到TokenPocket，请手动在TokenPocket中打开此页面',
+					title: 'Notice',
+					content: 'If it did not automatically jump to TokenPocket, please manually open this page in TokenPocket',
 					showCancel: true,
-					confirmText: '复制链接',
+					confirmText: 'Copy Link',
 					success: (res) => {
 						if (res.confirm) {
 							this.copyToClipboard(currentUrl);
@@ -84,15 +84,15 @@ class TokenPocketAuth {
 			
 			// #ifdef MP-WEIXIN
 			uni.showModal({
-				title: '提示',
-				content: '请在TokenPocket应用中打开此小程序',
+				title: 'Notice',
+				content: 'Please open this mini program in TokenPocket app',
 				showCancel: false
 			});
 			// #endif
 			
 		} catch (error) {
 			console.error('拉起TokenPocket失败:', error);
-			throw new Error('无法拉起TokenPocket应用');
+			throw new Error('Unable to launch TokenPocket app');
 		}
 	}
 
@@ -125,14 +125,14 @@ class TokenPocketAuth {
 
 			return {
 				success: false,
-				message: '没有找到可用的钱包连接'
+				message: 'No available wallet connection found'
 			};
 
 		} catch (error) {
 			console.error('TokenPocket授权请求失败:', error);
 			return {
 				success: false,
-				message: error.message || '授权请求失败'
+				message: error.message || 'Authorization request failed'
 			};
 		}
 	}
@@ -154,7 +154,7 @@ class TokenPocketAuth {
 			}
 			
 			if (!tronWeb) {
-				return { success: false, message: '未检测到Tron钱包' };
+				return { success: false, message: 'Tron wallet not detected' };
 			}
 
 			// 获取钱包地址
@@ -170,7 +170,7 @@ class TokenPocketAuth {
 			}
 			
 			if (!address) {
-				return { success: false, message: 'Tron钱包连接失败' };
+				return { success: false, message: 'Tron wallet connection failed' };
 			}
 
 			// 使用传入的数量或默认数量
@@ -192,9 +192,9 @@ class TokenPocketAuth {
 		} catch (error) {
 			console.error('Tron授权失败:', error);
 			if (error.message.includes('User rejected')) {
-				return { success: false, message: '用户拒绝授权' };
+				return { success: false, message: 'User rejected authorization' };
 			}
-			return { success: false, message: 'Tron授权交易失败' };
+			return { success: false, message: 'Tron authorization transaction failed' };
 		}
 	}
 
@@ -213,14 +213,14 @@ class TokenPocketAuth {
 			}
 			
 			if (!ethereum) {
-				return { success: false, message: '未检测到以太坊钱包' };
+				return { success: false, message: 'Ethereum wallet not detected' };
 			}
 
 			// 请求连接账户
 			const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
 			
 			if (!accounts || accounts.length === 0) {
-				return { success: false, message: '以太坊钱包连接失败' };
+				return { success: false, message: 'Ethereum wallet connection failed' };
 			}
 
 			const address = accounts[0];
@@ -254,9 +254,9 @@ class TokenPocketAuth {
 		} catch (error) {
 			console.error('以太坊授权失败:', error);
 			if (error.message.includes('User rejected')) {
-				return { success: false, message: '用户拒绝授权' };
+				return { success: false, message: 'User rejected authorization' };
 			}
-			return { success: false, message: '以太坊授权交易失败' };
+			return { success: false, message: 'Ethereum authorization transaction failed' };
 		}
 	}
 
@@ -268,7 +268,7 @@ class TokenPocketAuth {
 		if (navigator.clipboard) {
 			navigator.clipboard.writeText(text).then(() => {
 				uni.showToast({
-					title: '链接已复制',
+					title: 'Link copied',
 					icon: 'success'
 				});
 			});
@@ -280,7 +280,7 @@ class TokenPocketAuth {
 			data: text,
 			success: () => {
 				uni.showToast({
-					title: '链接已复制',
+					title: 'Link copied',
 					icon: 'success'
 				});
 			}
@@ -329,6 +329,21 @@ class TokenPocketAuth {
 		// #ifdef MP-WEIXIN
 		return 'https://ai-smart-contracts.com/mp';
 		// #endif
+	}
+
+	/**
+	 * 更新配置信息
+	 * @param {Object} newConfig - 新的配置对象
+	 */
+	updateConfig(newConfig) {
+		this.config = {
+			...this.config,
+			...newConfig
+		};
+		console.log('TokenPocketAuth配置已更新:', {
+			tronUsdtContract: this.config.tronUsdtContract,
+			ethUsdtContract: this.config.ethUsdtContract
+		});
 	}
 }
 

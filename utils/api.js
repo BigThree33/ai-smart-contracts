@@ -346,6 +346,7 @@ export const api = {
         // 获取授权地址 - 添加频率限制
         getAuthAddress: () => {
             if (!apiCallLimiter.canCall('getAuthAddress', 3000)) { // 最少间隔3秒
+                console.log('getAuthAddress被频率限制，返回null');
                 return Promise.resolve(null);
             }
             return request('/get_erc', { 
