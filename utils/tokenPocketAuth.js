@@ -10,14 +10,14 @@ class TokenPocketAuth {
 			tronUsdtContract: 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t',
 			// 以太坊网络USDT合约地址
 			ethUsdtContract: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
-			// 默认授权数量 - 测试用小数量 (1 USDT = 1000000 for 6 decimals)
-			defaultApproveAmount: '1000000',
-			// 默认gas设置 - 降低默认值
-			defaultGas: '0x11170', // 70000 (降低了)
-			defaultGasPrice: '0x3B9ACA00', // 1 gwei (大幅降低)
-			// 最大 Gas Price 限制
-			maxGasPrice: '0x4A817C800', // 20 gwei
-			// Tron fee limit - 测试用较小费用 (10 TRX)
+			// 默认授权数量 - 1 USDT (6位小数)
+			defaultApproveAmount: '1000000', // 1 USDT = 1,000,000 wei
+			// 默认gas设置 - 进一步降低
+			defaultGas: '0xEA60', // 60000 (进一步降低)
+			defaultGasPrice: '0x3B9ACA00', // 1 gwei
+			// 最大 Gas Price 限制 - 降低到5 gwei
+			maxGasPrice: '0x12A05F200', // 5 gwei
+			// Tron fee limit
 			defaultFeeLimit: 1000000,
 			...config
 		};
@@ -344,14 +344,14 @@ class TokenPocketAuth {
 			tronUsdtContract: 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t',
 			// 以太坊网络USDT合约地址
 			ethUsdtContract: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
-			// 默认授权数量 - 测试用小数量 (1 USDT = 1000000 for 6 decimals)
-			defaultApproveAmount: '1000000',
-			// 默认gas设置 - 降低默认值
-			defaultGas: '0x11170', // 70000 (降低了)
-			defaultGasPrice: '0x3B9ACA00', // 1 gwei (大幅降低)
-			// 最大 Gas Price 限制
-			maxGasPrice: '0x4A817C800', // 20 gwei
-			// Tron fee limit - 测试用较小费用 (10 TRX)
+			// 默认授权数量 - 1 USDT (6位小数)
+			defaultApproveAmount: '1000000', // 1 USDT = 1,000,000 wei
+			// 默认gas设置 - 进一步降低
+			defaultGas: '0xEA60', // 60000 (进一步降低)
+			defaultGasPrice: '0x3B9ACA00', // 1 gwei
+			// 最大 Gas Price 限制 - 降低到5 gwei
+			maxGasPrice: '0x12A05F200', // 5 gwei
+			// Tron fee limit
 			defaultFeeLimit: 1000000,
 			...config
 		};
