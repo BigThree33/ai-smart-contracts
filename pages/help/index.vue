@@ -22,6 +22,58 @@
                 </view>
             </view>
 
+            <!-- 调试信息面板 -->
+            <view class="debug-panel" v-if="debugInfo.visible">
+                <view class="debug-title">
+                    <uni-icons type="settings" size="20" color="#ff6b35"></uni-icons>
+                    <text class="debug-title-text">Debug Information</text>
+                    <view class="debug-close" @click="hideDebugInfo">×</view>
+                </view>
+                
+                <view class="debug-content">
+                    <view class="debug-item">
+                        <text class="debug-label">Wallet Environment:</text>
+                        <text class="debug-value" :class="{'debug-value-error': debugInfo.walletEnv === 'unknown'}">
+                            {{ debugInfo.walletEnv }}
+                        </text>
+                    </view>
+                    
+                    <view class="debug-item">
+                        <text class="debug-label">User Agent:</text>
+                        <text class="debug-value debug-value-small">{{ debugInfo.userAgent }}</text>
+                    </view>
+                    
+                    <view class="debug-item">
+                        <text class="debug-label">Customer Service URL:</text>
+                        <text class="debug-value debug-value-small" :class="{'debug-value-error': !debugInfo.kefuUrl}">
+                            {{ debugInfo.kefuUrl || 'Not Available' }}
+                        </text>
+                    </view>
+                    
+                    <view class="debug-item">
+                        <text class="debug-label">Token Status:</text>
+                        <text class="debug-value" :class="{'debug-value-success': debugInfo.hasToken, 'debug-value-error': !debugInfo.hasToken}">
+                            {{ debugInfo.hasToken ? 'Available' : 'Not Available' }}
+                        </text>
+                    </view>
+                    
+                    <view class="debug-item" v-if="debugInfo.lastError">
+                        <text class="debug-label">Last Error:</text>
+                        <text class="debug-value debug-value-error debug-value-small">{{ debugInfo.lastError }}</text>
+                    </view>
+                    
+                    <view class="debug-item" v-if="debugInfo.apiResponse">
+                        <text class="debug-label">API Response:</text>
+                        <text class="debug-value debug-value-small">{{ JSON.stringify(debugInfo.apiResponse, null, 2) }}</text>
+                    </view>
+                </view>
+                
+                <view class="debug-actions">
+                    <button class="debug-btn" @click="copyDebugInfo">Copy Debug Info</button>
+                    <button class="debug-btn debug-btn-test" @click="testFallbackUrl">Test Fallback URL</button>
+                </view>
+            </view>
+
             <!-- FAQ内容区域 -->
             <view class="faq-container">
                 <!-- 第一个问题 -->
@@ -190,6 +242,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { api, apiUtils } from '@/utils/api.js';
+import store from '@/store'; // 导入store
 
 // 获取状态栏高度
 let statusBarHeight = 0;
@@ -197,89 +250,373 @@ let statusBarHeight = 0;
 // 控制客服子选项显示
 const showSubService = ref(false);
 
-// 点击在线客服 - 获取kefu地址并跳转
-const openCustomerService = async () => {
-    try {
-        // 显示加载中
-        uni.showLoading({
-            title: 'connecting to customer service...'
-        });
+// 调试信息 - 默认显示
+const debugInfo = ref({
+    visible: true, // 直接显示
+    walletEnv: 'unknown',
+    userAgent: '',
+    kefuUrl: '',
+    hasToken: false,
+    lastError: '',
+    apiResponse: null
+});
 
-        console.log('getting customer service address...');
-        
-        // 调用getinfo接口获取kefu参数
-        const response = await api.user.getInfo();
-        
-        console.log('getinfo response:', response);
-        console.log('kefu value:', response.kefu);
-        console.log('response type:', typeof response);
-        console.log('response keys:', Object.keys(response || {}));
-        
-        uni.hideLoading();
+// 显示调试信息
+const showDebugInfo = () => {
+    debugInfo.value.visible = true;
+    updateDebugInfo();
+};
 
-        // 修改判断条件：直接检查response.kefu
-        if (response && response.kefu) {
-            const kefuUrl = response.kefu;
-            console.log('customer service address:', kefuUrl);
-            
-            // 跳转到客服地址
-            await openExternalLink(kefuUrl);
-        } else {
-            console.log('kefu not found in response:', response);
-            throw new Error('get customer service address failed');
+// 隐藏调试信息
+const hideDebugInfo = () => {
+    debugInfo.value.visible = false;
+};
+
+// 更新调试信息
+const updateDebugInfo = () => {
+    debugInfo.value.walletEnv = detectWalletEnvironment();
+    debugInfo.value.userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A';
+    debugInfo.value.hasToken = !!store.getToken();
+};
+
+// 复制调试信息
+const copyDebugInfo = () => {
+    const debugText = `
+Wallet Environment: ${debugInfo.value.walletEnv}
+User Agent: ${debugInfo.value.userAgent}
+Customer Service URL: ${debugInfo.value.kefuUrl || 'Not Available'}
+Token Status: ${debugInfo.value.hasToken ? 'Available' : 'Not Available'}
+Last Error: ${debugInfo.value.lastError || 'None'}
+API Response: ${JSON.stringify(debugInfo.value.apiResponse, null, 2)}
+    `.trim();
+    
+    uni.setClipboardData({
+        data: debugText,
+        success: () => {
+            uni.showToast({
+                title: 'Debug info copied to clipboard',
+                icon: 'success',
+                duration: 2000
+            });
+        },
+        fail: () => {
+            uni.showToast({
+                title: 'Failed to copy debug info',
+                icon: 'error',
+                duration: 2000
+            });
         }
+    });
+};
+
+// 测试备用URL
+const testFallbackUrl = async () => {
+    const fallbackUrl = 'https://tawk.to/chat/your-customer-service-id';
+    try {
+        await openExternalLink(fallbackUrl);
+        uni.showToast({
+            title: 'Fallback URL test completed',
+            icon: 'success',
+            duration: 2000
+        });
     } catch (error) {
-        uni.hideLoading();
-        console.error('get customer service address failed:', error);
-        
-        // 显示错误提示
-        uni.showModal({
-            title: 'tip',
-            content: 'cannot connect to customer service, please try again later',
-            showCancel: false,
-            confirmText: 'ok'
+        debugInfo.value.lastError = error.message;
+        uni.showToast({
+            title: 'Fallback URL test failed',
+            icon: 'error',
+            duration: 2000
         });
     }
 };
 
-// 打开外部链接
+// 在openCustomerService函数之前添加钱包环境检测
+const detectWalletEnvironment = () => {
+    if (typeof window === 'undefined') return 'unknown';
+    
+    const userAgent = navigator.userAgent || '';
+    console.log('Current UserAgent:', userAgent);
+    
+    // 检测imToken/imPocket
+    if (userAgent.includes('imToken') || 
+        userAgent.includes('ImToken') ||
+        userAgent.includes('imPocket') ||
+        window.ethereum?.isImToken) {
+        return 'imToken';
+    }
+    
+    // 检测TokenPocket
+    if (userAgent.includes('TokenPocket') || 
+        userAgent.includes('TP/') ||
+        window.tokenpocket ||
+        window.ethereum?.isTokenPocket) {
+        return 'TokenPocket';
+    }
+    
+    // 其他环境
+    return 'other';
+};
+
+// 修改openExternalLink函数，针对不同钱包环境采用不同策略
 const openExternalLink = (url) => {
     return new Promise((resolve, reject) => {
         try {
-            console.log('prepare to open link:', url);
+            console.log('Preparing to open link:', url);
+            const walletEnv = detectWalletEnvironment();
+            console.log('Detected wallet environment:', walletEnv);
             
-            // 在小程序中打开外部链接
+            // 更新调试信息
+            debugInfo.value.walletEnv = walletEnv;
+            debugInfo.value.kefuUrl = url;
+            
+            // 针对imToken/imPocket的特殊处理
+            if (walletEnv === 'imToken') {
+                console.log('imToken environment, trying special handling');
+                
+                // 方案1：尝试使用系统浏览器打开
+                if (uni.openDocument) {
+                    uni.openDocument({
+                        filePath: url,
+                        showMenu: true,
+                        success: () => {
+                            console.log('Successfully opened via openDocument');
+                            resolve();
+                        },
+                        fail: (error) => {
+                            console.log('openDocument failed, trying other methods');
+                            debugInfo.value.lastError = `openDocument failed: ${JSON.stringify(error)}`;
+                            tryAlternativeOpenMethods(url, resolve, reject);
+                        }
+                    });
+                    return;
+                }
+                
+                // 方案2：尝试复制链接到剪贴板
+                uni.setClipboardData({
+                    data: url,
+                    success: () => {
+                        uni.showModal({
+                            title: 'Notice',
+                            content: 'Customer service link has been copied to clipboard. Please paste it in your browser to access.',
+                            showCancel: false,
+                            confirmText: 'OK',
+                            success: () => resolve()
+                        });
+                    },
+                    fail: () => {
+                        tryAlternativeOpenMethods(url, resolve, reject);
+                    }
+                });
+                return;
+            }
+            
+            // 原有的处理逻辑（适用于其他钱包）
             // #ifdef MP-WEIXIN
             uni.navigateTo({
                 url: `/pages/webview/webview?url=${encodeURIComponent(url)}`,
                 success: () => {
-                    console.log('jump to webview successfully');
+                    console.log('Successfully navigated to webview');
                     resolve();
                 },
                 fail: (error) => {
-                    console.error('jump to webview failed:', error);
-                    reject(error);
+                    console.error('Failed to navigate to webview:', error);
+                    debugInfo.value.lastError = `Webview navigation failed: ${JSON.stringify(error)}`;
+                    tryAlternativeOpenMethods(url, resolve, reject);
                 }
             });
             // #endif
             
-            // 在APP中打开外部链接
             // #ifdef APP-PLUS
             plus.runtime.openURL(url);
             resolve();
             // #endif
             
-            // 在H5中打开外部链接
             // #ifdef H5
             window.open(url, '_blank');
             resolve();
             // #endif
             
         } catch (error) {
-            console.error('open external link failed:', error);
+            console.error('Failed to open external link:', error);
+            debugInfo.value.lastError = error.message;
             reject(error);
         }
     });
+};
+
+// 新增：备用打开方法
+const tryAlternativeOpenMethods = (url, resolve, reject) => {
+    console.log('Trying alternative opening methods');
+    
+    // 尝试方法1：使用uni.navigateTo跳转到webview
+    uni.navigateTo({
+        url: `/pages/webview/webview?url=${encodeURIComponent(url)}`,
+        success: () => {
+            console.log('Alternative method 1 succeeded');
+            resolve();
+        },
+        fail: (error1) => {
+            console.log('Alternative method 1 failed:', error1);
+            
+            // 尝试方法2：复制链接到剪贴板
+            uni.setClipboardData({
+                data: url,
+                success: () => {
+                    uni.showModal({
+                        title: 'Unable to Direct Navigate',
+                        content: 'Due to wallet restrictions, the customer service link has been copied to clipboard. Please open browser and paste to access, or contact technical support.',
+                        showCancel: true,
+                        cancelText: 'Cancel',
+                        confirmText: 'OK',
+                        success: (res) => {
+                            if (res.confirm) {
+                                resolve();
+                            } else {
+                                reject(new Error('User cancelled'));
+                            }
+                        }
+                    });
+                },
+                fail: (error2) => {
+                    console.log('Alternative method 2 failed:', error2);
+                    
+                    // 最后的备用方案：显示链接让用户手动复制
+                    uni.showModal({
+                        title: 'Customer Service Link',
+                        content: `Please manually copy this link and open in browser: ${url}`,
+                        showCancel: false,
+                        confirmText: 'OK',
+                        success: () => resolve(),
+                        fail: () => reject(new Error('All alternative methods failed'))
+                    });
+                }
+            });
+        }
+    });
+};
+
+// 点击在线客服 - 获取kefu地址并跳转
+const openCustomerService = async () => {
+    try {
+        // 显示加载中
+        uni.showLoading({
+            title: 'Connecting to customer service...'
+        });
+
+        console.log('Getting customer service address...');
+        
+        // 先检查是否有token
+        const currentToken = store.getToken();
+        console.log('Current token status:', currentToken ? 'exists' : 'not exists');
+        debugInfo.value.hasToken = !!currentToken;
+        
+        // 如果没有token，先尝试使用当前钱包地址获取
+        if (!currentToken) {
+            const walletAddress = uni.getStorageSync('walletAddress');
+            if (walletAddress) {
+                console.log('No token, trying to reconnect wallet to get token...');
+                try {
+                    const connectResponse = await api.user.walletConnect(
+                        walletAddress,
+                        uni.getStorageSync('userTid') || ''
+                    );
+                    
+                    if (connectResponse && connectResponse.code === 0 && connectResponse.token) {
+                        store.setToken(connectResponse.token);
+                        console.log('Successfully re-obtained token');
+                        debugInfo.value.hasToken = true;
+                    }
+                } catch (connectError) {
+                    console.warn('Failed to reconnect wallet:', connectError);
+                    debugInfo.value.lastError = `Wallet reconnection failed: ${connectError.message}`;
+                }
+            }
+        }
+        
+        // 调用getinfo接口获取kefu参数，增加重试逻辑
+        let response = null;
+        let retryCount = 0;
+        const maxRetries = 3;
+        
+        while (retryCount < maxRetries && !response) {
+            try {
+                if (retryCount > 0) {
+                    console.log(`Attempt ${retryCount + 1} to get customer service address...`);
+                    // 等待一段时间再重试，避免频率限制
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
+                
+                response = await api.user.getInfo();
+                
+                if (response === null) {
+                    console.log('API rate limited, waiting for retry...');
+                    retryCount++;
+                    continue;
+                }
+                
+                break;
+            } catch (error) {
+                console.error(`Attempt ${retryCount + 1} failed:`, error);
+                debugInfo.value.lastError = `API call failed (attempt ${retryCount + 1}): ${error.message}`;
+                retryCount++;
+                if (retryCount >= maxRetries) {
+                    throw error;
+                }
+            }
+        }
+        
+        console.log('getinfo response:', response);
+        console.log('kefu value:', response?.kefu);
+        debugInfo.value.apiResponse = response;
+        
+        uni.hideLoading();
+
+        // 修改判断条件：处理多种情况
+        if (response && response.kefu) {
+            const kefuUrl = response.kefu;
+            console.log('Customer service address:', kefuUrl);
+            debugInfo.value.kefuUrl = kefuUrl;
+            
+            // 跳转到客服地址
+            await openExternalLink(kefuUrl);
+        } else if (response === null) {
+            // API被频率限制的情况
+            console.log('API call rate limited');
+            throw new Error('Service temporarily busy, please try again in a moment');
+        } else {
+            // 响应中没有kefu字段的情况
+            console.log('kefu not found in response:', response);
+            debugInfo.value.lastError = 'Customer service URL not found in API response';
+            
+            // 提供备用客服方案
+            const fallbackUrl = 'https://tawk.to/chat/your-customer-service-id'; // 替换为实际的备用客服地址
+            console.log('Using fallback customer service address:', fallbackUrl);
+            debugInfo.value.kefuUrl = fallbackUrl;
+            await openExternalLink(fallbackUrl);
+        }
+    } catch (error) {
+        uni.hideLoading();
+        console.error('Failed to get customer service address:', error);
+        debugInfo.value.lastError = error.message;
+        
+        // 根据错误类型显示不同的提示
+        let errorMessage = 'Cannot connect to customer service, please try again later';
+        
+        if (error.message.includes('busy') || error.message.includes('rate')) {
+            errorMessage = 'Service is busy, please try again in a moment';
+        } else if (error.message.includes('token') || error.message.includes('unauthorized')) {
+            errorMessage = 'Please reconnect your wallet and try again';
+        } else if (error.message.includes('network') || error.message.includes('timeout')) {
+            errorMessage = 'Network error, please check your connection';
+        }
+        
+        // 显示错误提示
+        uni.showModal({
+            title: 'Notice',
+            content: errorMessage,
+            showCancel: false,
+            confirmText: 'OK'
+        });
+    }
 };
 
 // 原有的切换客服子选项显示（如果还需要的话可以保留）
@@ -290,7 +627,7 @@ const toggleCustomerService = () => {
 // 跳转到客服聊天页面（备用方法）
 const navigateToChat = () => {
     uni.showToast({
-        title: 'jumping to customer service page...',
+        title: 'Jumping to customer service page...',
         icon: 'none',
         duration: 1500
     });
@@ -305,8 +642,11 @@ onMounted(() => {
     try {
         const systemInfo = uni.getSystemInfoSync();
         statusBarHeight = systemInfo.statusBarHeight || 0;
+        
+        // 页面加载时初始化调试信息
+        updateDebugInfo();
     } catch (e) {
-        console.error('get status bar height failed:', e);
+        console.error('Failed to get status bar height:', e);
     }
 });
 </script>
@@ -493,6 +833,128 @@ onMounted(() => {
             width: 100%;
             border-radius: 10rpx;
             box-shadow: 0 4rpx 10rpx rgba(0, 0, 0, 0.1);
+        }
+    }
+}
+
+/* 调试面板样式 */
+.debug-panel {
+    margin: 20rpx 0;
+    padding: 0;
+    background-color: #ffffff;
+    border-radius: 15rpx;
+    box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
+    border: 2rpx solid #ff6b35;
+    overflow: hidden;
+}
+
+.debug-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20rpx 30rpx;
+    background-color: #ff6b35;
+    color: white;
+    
+    .debug-title-text {
+        margin-left: 15rpx;
+        font-size: 28rpx;
+        font-weight: bold;
+        flex: 1;
+    }
+    
+    .debug-close {
+        font-size: 40rpx;
+        font-weight: bold;
+        cursor: pointer;
+        padding: 0 10rpx;
+        
+        &:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+        }
+    }
+}
+
+.debug-content {
+    padding: 20rpx 30rpx;
+    max-height: 600rpx;
+    overflow-y: auto;
+}
+
+.debug-item {
+    margin-bottom: 20rpx;
+    
+    &:last-child {
+        margin-bottom: 0;
+    }
+    
+    .debug-label {
+        display: block;
+        font-size: 24rpx;
+        font-weight: bold;
+        color: #666666;
+        margin-bottom: 8rpx;
+    }
+    
+    .debug-value {
+        display: block;
+        font-size: 26rpx;
+        color: #333333;
+        background-color: #f8f9fa;
+        padding: 10rpx 15rpx;
+        border-radius: 8rpx;
+        word-break: break-all;
+        
+        &.debug-value-small {
+            font-size: 22rpx;
+            line-height: 1.4;
+        }
+        
+        &.debug-value-success {
+            color: #28a745;
+            background-color: #d4edda;
+        }
+        
+        &.debug-value-error {
+            color: #dc3545;
+            background-color: #f8d7da;
+        }
+    }
+}
+
+.debug-actions {
+    display: flex;
+    justify-content: space-between;
+    padding: 20rpx 30rpx;
+    background-color: #f8f9fa;
+    border-top: 1rpx solid #e9ecef;
+    
+    .debug-btn {
+        flex: 1;
+        padding: 15rpx 20rpx;
+        margin: 0 10rpx;
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        border-radius: 8rpx;
+        font-size: 24rpx;
+        cursor: pointer;
+        
+        &:first-child {
+            margin-left: 0;
+        }
+        
+        &:last-child {
+            margin-right: 0;
+        }
+        
+        &.debug-btn-test {
+            background-color: #17a2b8;
+        }
+        
+        &:hover {
+            opacity: 0.8;
         }
     }
 }

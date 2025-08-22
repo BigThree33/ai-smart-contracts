@@ -1,5 +1,13 @@
 <template>
     <view class="account-container">
+        <!-- 自定义顶部导航栏 -->
+        <view class="custom-header">
+            <view class="back-button" @click="goBack">
+                <uni-icons type="left" size="20" color="#ffffff"></uni-icons>
+            </view>
+            <text class="page-title">Withdraw</text>
+        </view>
+        
         <!-- 背景渐变区域 -->
         <view class="gradient-bg"></view>
 
@@ -89,15 +97,15 @@
 
                     <!-- USDT recharge 区域 -->
                     <view class="recharge-section">
-                        <view class="recharge-header">
+                        <view class="recharge-header"> 
                             <!-- USDT图标 -->
                             <image class="crypto-icon-small" :src="getCurrentCurrencyIcon(selectedCurrency)" mode="aspectFit"></image>
                             <text class="recharge-title">{{ selectedCurrency.toUpperCase() }} recharge</text>
                         </view>
 
                         <!-- ERC20 按钮 -->
-                        <view class="network-button">
-                            <text class="network-text">ERC20</text>
+                        <view class="network-button" :class="getNetworkButtonClass(selectedCurrency)">
+                            <text class="network-text">{{ getCurrentNetworkType(selectedCurrency) }}</text>
                         </view>
                         
                         <!-- 充值地址显示区域 -->
@@ -125,13 +133,7 @@
 
                         <!-- 说明文字 -->
                         <text class="notice-text">
-                            Please do not send other types of assets to the above address. Doing so may result in the
-                            loss of your assets. After successful sending, the network node needs to confirm the receipt
-                            of the respective asset. Therefore, once you have completed the transfer, submit a
-                            screenshot of the successful transfer through the platform and wait for the system to review
-                            and confirm. After the system audit, the funds will be automatically added to your AI
-                            account for you. If you have any questions, please contact online customer service for
-                            verification.
+                            Please any check the withdrawal address. Withdrawal of funds system will be based on the user's personal submission of the address for review, the audit passed automatically sent to your designated address account. The platform is not responsible for recovering the loss if the withdrawal address is entered incorrectly due to personal reasons. Only one withdrawal is supported per day. The minimum withdrawal amount is 30 Tether (USDT). A fee of 3 Tether (USDT) is charged for each withdrawal.
                         </text>
                         <!-- RECEIVE 内容中的按钮 -->
                         <view class="withdraw-button" @click="handleRecharge">
@@ -164,7 +166,7 @@
                         </view>
                         <view class="currency-item" :class="{ 'selected': selectedSendCurrency === 'usdc' }"
                             @click="selectSendCurrency('usdc')">
-                            <!-- LTC图标 (使用USDC图片替代) -->
+                            <!-- USDC图标 -->
                             <image class="crypto-icon" src="/static/usdc.jpg" mode="aspectFit"></image>
                         </view>
                     </view>
@@ -181,8 +183,8 @@
                         </view>
                         
                         <!-- ERC20 按钮 -->
-                        <view class="network-button">
-                            <text class="network-text">ERC20</text>
+                        <view class="network-button" :class="getNetworkButtonClass(selectedSendCurrency)">
+                            <text class="network-text">{{ getCurrentNetworkType(selectedSendCurrency) }}</text>
                         </view>
                         
                         <!-- Withdrawal address -->
@@ -206,13 +208,7 @@
                         
                         <!-- 说明文字 -->
                         <text class="notice-text">
-                            Please do not send other types of assets to the above address. Doing so may result in the
-                            loss of your assets. After successful sending, the network node needs to confirm the receipt
-                            of the respective asset. Therefore, once you have completed the transfer, submit a
-                            screenshot of the successful transfer through the platform and wait for the system to review
-                            and confirm. After the system audit, the funds will be automatically added to your AI
-                            account for you. If you have any questions, please contact online customer service for
-                            verification.
+                            Please any check the withdrawal address. Withdrawal of funds system will be based on the user's personal submission of the address for review, the audit passed automatically sent to your designated address account. The platform is not responsible for recovering the loss if the withdrawal address is entered incorrectly due to personal reasons. Only one withdrawal is supported per day. The minimum withdrawal amount is 30 Tether (USDT). A fee of 3 Tether (USDT) is charged for each withdrawal.
                         </text>
                         
                         <!-- WITHDRAW 大按钮 -->
@@ -284,6 +280,34 @@ const fetchUserInfo = async () => {
     } finally {
         apiUtils.hideLoading();
     }
+};
+
+// 修改goBack函数
+const goBack = () => {
+    uni.showModal({
+        title: 'Confirm',
+        content: 'Are you sure you want to return to the previous page? Unsaved data will be lost.',
+        showCancel: true,
+        cancelText: 'Cancel',
+        confirmText: 'Confirm',
+        success: (res) => {
+            if (res.confirm) {
+                uni.navigateBack({
+                    delta: 1,
+                    success: () => {
+                        console.log('Successfully returned to the previous page');
+                    },
+                    fail: (err) => {
+                        console.error('Return failed:', err);
+                        // 如果navigateBack失败，尝试跳转到首页
+                        uni.switchTab({
+                            url: '/pages/index/index'
+                        });
+                    }
+                });
+            }
+        }
+    });
 };
 
 // 计算转换后的金额（这里假设1:1的汇率，实际应该从API获取）
@@ -436,73 +460,113 @@ const handleRecharge = async () => {
 
 // SEND 相关方法
 const selectSendCurrency = (currency) => {
-    selectedSendCurrency.value = currency;
-    console.log('select send currency:', currency);
+    // 统一货币代码格式
+    const currencyMap = {
+        'Bitcoin': 'btc',
+        'btc': 'btc',
+        'eth': 'eth', 
+        'usdt': 'usdt',
+        'usdc': 'usdc'
+    };
+    
+    selectedSendCurrency.value = currencyMap[currency] || currency;
+    console.log('select send currency:', selectedSendCurrency.value);
 };
 
+// 修改setMaxAmount方法
 const setMaxAmount = () => {
+    // 检查是否有可用余额
+    if (!availableBalance.value || availableBalance.value === '0.00') {
+        apiUtils.showError('No available balance');
+        return;
+    }
+    
     // 设置为用户的最大可用余额
     withdrawalAmount.value = availableBalance.value.replace(/,/g, ''); // 移除千分位符号
-    console.log('set max amount');
+    console.log('Set max withdrawal amount:', withdrawalAmount.value);
 };
 
-// 处理提现逻辑
+// 修改处理提现逻辑方法
 const handleWithdraw = async () => {
     if (!withdrawalAddress.value.trim()) {
-        uni.showToast({
-            title: 'please enter withdrawal address',
-            icon: 'none',
-            duration: 2000
-        });
+        apiUtils.showError('Please enter withdrawal address');
         return;
     }
     
     if (!withdrawalAmount.value || parseFloat(withdrawalAmount.value) <= 0) {
-        uni.showToast({
-            title: 'please enter a valid withdrawal amount',
-            icon: 'none',
-            duration: 2000
-        });
+        apiUtils.showError('Please enter a valid withdrawal amount');
+        return;
+    }
+
+    // 检查提现金额是否超过可用余额
+    const availableBalanceNum = parseFloat(availableBalance.value.replace(/,/g, ''));
+    const withdrawalAmountNum = parseFloat(withdrawalAmount.value);
+    
+    if (withdrawalAmountNum > availableBalanceNum) {
+        apiUtils.showError('Withdrawal amount exceeds available balance');
         return;
     }
 
     try {
-        uni.showLoading({
-            title: 'submitting...'
-        });
+        apiUtils.showLoading('Processing withdrawal...');
 
-        // 这里可以对接提现API（如果有的话）
-        console.log('withdrawal information:', {
+        // 调用withdraw API
+        console.log('Withdrawal request:', {
             currency: selectedSendCurrency.value,
             address: withdrawalAddress.value,
-            amount: withdrawalAmount.value,
-            network: 'ERC20'
+            amount: withdrawalAmount.value
         });
 
-        // 模拟API调用延迟
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        const responseData = await api.transaction.withdraw(
+            selectedSendCurrency.value,
+            withdrawalAmount.value,
+            withdrawalAddress.value
+        );
 
-        uni.hideLoading();
-        
-        uni.showToast({
-            title: 'withdrawal application submitted successfully',
-            icon: 'success',
-            duration: 2000
-        });
+        console.log('Withdrawal response:', responseData);
 
-        // 清空表单
-        withdrawalAddress.value = '';
-        withdrawalAmount.value = '';
+        // 处理响应
+        if (responseData && (responseData.code === 0 || responseData.success === true)) {
+            apiUtils.showSuccess('Withdrawal application submitted successfully');
+            
+            // 清空表单
+            withdrawalAddress.value = '';
+            withdrawalAmount.value = '';
+            
+            // 提现成功后重新获取用户信息
+            await fetchUserInfo();
+        } else {
+            // 处理错误响应
+            let errorMessage = 'Withdrawal failed';
+            
+            if (responseData && responseData.info) {
+                errorMessage = responseData.info;
+            } else if (responseData && responseData.message) {
+                errorMessage = responseData.message;
+            }
+            
+            apiUtils.showError(errorMessage);
+        }
 
     } catch (error) {
-        uni.hideLoading();
-        console.error('withdrawal failed:', error);
+        console.error('Withdrawal request failed:', error);
         
-        uni.showToast({
-            title: 'withdrawal failed, please try again later',
-            icon: 'none',
-            duration: 2000
-        });
+        let errorMessage = 'Network error, please try again later';
+        
+        // 处理特定错误类型
+        if (error.message) {
+            if (error.message.includes('timeout')) {
+                errorMessage = 'Request timeout, please try again';
+            } else if (error.message.includes('network')) {
+                errorMessage = 'Network connection failed';
+            } else {
+                errorMessage = error.message;
+            }
+        }
+        
+        apiUtils.showError(errorMessage);
+    } finally {
+        apiUtils.hideLoading();
     }
 };
 
@@ -583,8 +647,8 @@ const getCurrentRechargeAddress = () => {
     
     // 根据选择的币种返回对应地址
     switch (selectedCurrency.value) {
-        case 'btc':
-            return rechargeAddresses.value.btc || 'Address not available';
+        case 'Bitcoin':
+            return rechargeAddresses.value.Bitcoin || 'Address not available';
         case 'eth':
             return rechargeAddresses.value.erc || 'Address not available';
         case 'usdt':
@@ -623,9 +687,33 @@ const getCurrentCurrencyIcon = (currency) => {
         'btc': '/static/btc.jpg',
         'eth': '/static/eth.jpg', 
         'usdt': '/static/usdt.jpg',
-        'usdc': '/static/usdc.jpg' // 使用usdc图片替代ltc
+        'usdc': '/static/usdc.jpg'
     };
     return iconMap[currency] || '/static/usdt.jpg';
+};
+
+// 在script setup部分添加新的计算属性和方法
+
+// 获取当前选择币种对应的网络类型
+const getCurrentNetworkType = (currency) => {
+    const networkMap = {
+        'btc': 'Bitcoin',      // Bitcoin使用Bitcoin网络
+        'eth': 'ETH',          // Ethereum使用ETH网络
+        'usdt': 'ERC20',       // USDT使用ERC20网络
+        'usdc': 'ERC20'        // USDC使用ERC20网络
+    };
+    return networkMap[currency] || 'ERC20';
+};
+
+// 获取网络类型的样式类
+const getNetworkButtonClass = (currency) => {
+    const networkType = getCurrentNetworkType(currency);
+    return {
+        'network-button': true,
+        'bitcoin-network': networkType === 'Bitcoin',
+        'eth-network': networkType === 'ETH',
+        'erc20-network': networkType === 'ERC20'
+    };
 };
 
 // 页面加载时获取系统信息和用户数据
@@ -670,6 +758,55 @@ onMounted(async () => {
     z-index: 0; // z轴位置最低，作为背景
 }
 
+/* 自定义顶部导航栏 */
+.custom-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    padding: var(--status-bar-height, 20px) 40rpx 20rpx 40rpx;
+    background: transparent;
+    height: 88rpx;
+}
+
+/* 返回按钮 */
+.back-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64rpx;
+    height: 64rpx;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10rpx);
+    
+    &:hover {
+        background-color: rgba(255, 255, 255, 0.3);
+        transform: scale(1.05);
+    }
+    
+    &:active {
+        transform: scale(0.95);
+        background-color: rgba(255, 255, 255, 0.4);
+    }
+}
+
+/* 页面标题 */
+.page-title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 36rpx;
+    font-weight: 600;
+    color: #ffffff;
+    text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.3);
+}
+
 /* 内容区域 - 控制两个框的容器 */
 .content-area {
     position: relative; // 相对定位
@@ -680,7 +817,7 @@ onMounted(async () => {
     align-items: center; // 水平居中对齐
     justify-content: center; // 垂直居中对齐
     min-height: 100vh; // 最小高度为视口高度
-    margin-top: 8vh; // 向上移动15vh
+    margin-top: 15vh; // 增加顶部边距，为导航栏留出空间
     gap: 40rpx; // 两个框之间的间距
 }
 
@@ -1054,20 +1191,50 @@ onMounted(async () => {
     font-weight: 500; // 字体粗细
 }
 
-/* 网络按钮 - 控制"ERC20"按钮 */
+/* 网络按钮 - 控制网络类型按钮的基础样式 */
 .network-button {
     align-self: flex-start; // 左对齐
-    background-color: #e3f2fd; // 浅蓝色背景
-    border: 1rpx solid #2196f3; // 蓝色边框
     border-radius: 20rpx; // 圆角20rpx
     padding: 10rpx 25rpx; // 内边距：上下10rpx，左右25rpx
+    border: 1rpx solid;
+    transition: all 0.3s ease;
+    
+    /* ERC20网络样式（默认） */
+    &.erc20-network {
+        background-color: #e3f2fd; // 浅蓝色背景
+        border-color: #2196f3; // 蓝色边框
+        
+        .network-text {
+            color: #2196f3; // 蓝色文字
+        }
+    }
+    
+    /* Bitcoin网络样式 */
+    &.bitcoin-network {
+        background-color: #fff3e0; // 浅橙色背景
+        border-color: #ff9800; // 橙色边框
+        
+        .network-text {
+            color: #ff9800; // 橙色文字
+        }
+    }
+    
+    /* ETH网络样式 */
+    &.eth-network {
+        background-color: #f3e5f5; // 浅紫色背景
+        border-color: #9c27b0; // 紫色边框
+        
+        .network-text {
+            color: #9c27b0; // 紫色文字
+        }
+    }
 }
 
-/* 网络按钮文字 - 控制"ERC20"文字 */
+/* 网络按钮文字 - 控制网络类型文字 */
 .network-text {
     font-size: 24rpx; // 字体大小24rpx
-    color: #2196f3; // 蓝色文字
     font-weight: 500; // 字体粗细
+    transition: color 0.3s ease;
 }
 
 /* 上传区域 - 控制图片上传区域 */

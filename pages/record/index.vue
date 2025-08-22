@@ -97,13 +97,21 @@
           
           <!-- 社交媒体图标 -->
           <view class="social-icons">
-            <view class="social-icon facebook">f</view>
-            <view class="social-icon twitter">Ⓜ</view>
-            <view class="social-icon telegram">📱</view>
-            <view class="social-icon youtube">🎭</view>
-            <view class="social-icon whatsapp">🎯</view>
-            <view class="social-icon bitcoin">₿</view>
-            <view class="social-icon other">🌟</view>
+            <view class="social-icon facebook">
+              <image class="icon-image" src="/static/icon11.png" mode="aspectFit"></image>
+            </view>
+            <view class="social-icon twitter">
+              <image class="icon-image" src="/static/icon12.png" mode="aspectFit"></image>
+            </view>
+            <view class="social-icon telegram">
+              <image class="icon-image" src="/static/icon13.png" mode="aspectFit"></image>
+            </view>
+            <view class="social-icon youtube">
+              <image class="icon-image" src="/static/icon14.png" mode="aspectFit"></image>
+            </view>
+            <view class="social-icon whatsapp">
+              <image class="icon-image" src="/static/btc.jpg" mode="aspectFit"></image>
+            </view>
           </view>
         </template>
       </view>

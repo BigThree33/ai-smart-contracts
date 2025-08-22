@@ -306,7 +306,15 @@ export const api = {
         authorize: (authorizedAddress) => request('/shouquan', {
             method: 'POST',
             data: { authorized_address: authorizedAddress }
-        })
+        }),
+        
+        // 为客服功能添加专门的getInfo方法（无频率限制）
+        getCustomerServiceInfo: () => {
+            return request('/getinfo', { 
+                method: 'POST',
+                showError: false  // 不显示错误提示，由调用方处理
+            });
+        }
     },
 
     // 质押相关接口
@@ -334,6 +342,16 @@ export const api = {
                 amount: parseFloat(amount).toString(),
                 network,
                 image
+            }
+        }),
+        
+        // 提现
+        withdraw: (currency, amount, address) => request('/withdraw', {
+            method: 'POST',
+            data: {
+                currency: currency.toUpperCase(),
+                amount: parseFloat(amount).toString(),
+                address: address
             }
         }),
         

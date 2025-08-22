@@ -71,6 +71,18 @@
         
         <view class="social-icons">
           <view class="social-icon facebook">
+            <image class="icon-image" src="/static/icon11.png" mode="aspectFit"></image>
+          </view>
+          <view class="social-icon facebook">
+            <image class="icon-image" src="/static/icon12.png" mode="aspectFit"></image>
+          </view>
+          <view class="social-icon facebook">
+            <image class="icon-image" src="/static/icon13.png" mode="aspectFit"></image>
+          </view>
+          <view class="social-icon facebook">
+            <image class="icon-image" src="/static/icon14.png" mode="aspectFit"></image>
+          </view>
+          <view class="social-icon facebook">
             <image class="icon-image" src="/static/btc.jpg" mode="aspectFit"></image>
           </view>
           <view class="social-icon twitter">
@@ -80,9 +92,6 @@
             <image class="icon-image" src="/static/usdt.jpg" mode="aspectFit"></image>
           </view>
           <view class="social-icon telegram">
-            <image class="icon-image" src="/static/usdc.jpg" mode="aspectFit"></image>
-          </view>
-          <view class="social-icon youtube">
             <image class="icon-image" src="/static/usdc.jpg" mode="aspectFit"></image>
           </view>
         </view>

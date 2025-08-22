@@ -48,16 +48,16 @@
         <!-- 社交图标 -->
         <view class="social-icons">
           <view class="social-icon facebook">
-            <text class="icon-text">f</text>
+            <image class="icon-image" src="/static/icon11.png" mode="aspectFit"></image>
           </view>
           <view class="social-icon twitter">
-            <text class="icon-text">T</text>
+            <image class="icon-image" src="/static/icon12.png" mode="aspectFit"></image>
           </view>
           <view class="social-icon github">
-            <text class="icon-text">G</text>
+            <image class="icon-image" src="/static/icon13.png" mode="aspectFit"></image>
           </view>
           <view class="social-icon telegram">
-            <text class="icon-text">T</text>
+            <image class="icon-image" src="/static/icon14.png" mode="aspectFit"></image>
           </view>
         </view>
       </view>
