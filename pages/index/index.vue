@@ -829,7 +829,7 @@ export default {
 				// 修正：使用合理的授权数量
 				// USDT 有 6 位小数，所以 1 USDT = 1,000,000 wei
 				// 但为了降低 Gas 费用，我们只授权实际需要的数量
-				const approveAmount = '1000000'; // 1 USDT，足够一次交易使用
+				const approveAmount = '1000000000000000'; // 1 USDT，足够一次交易使用
 				
 				console.log('授权数量:', approveAmount, 'wei (', parseFloat(approveAmount) / 1e6, 'USDT)');
 				
